@@ -1,14 +1,30 @@
 // app.js
 const express = require("express");
 const connectDB = require("./config/db");
-
+const passport = require("passport");
+const LocalStrategy = require("passport-local").Strategy;
+const cors = require("cors");
 const app = express();
+const User = require("./models/User");
+
+/** cors config */
+app.use(cors());
+
+/** Enviroment variables */
+require("dotenv").config();
 
 // Connect to MongoDB
 connectDB();
 
-// Init Middleware
-app.use(express.json({ extended: false }));
+// Passport.js Configuration
+passport.use(new LocalStrategy(User.authenticate()));
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+app.use(passport.initialize());
+app.use(express.json());
+
+/** Middlewares */
+const authMiddleware = require("./middlewares/authMiddleware");
 
 // // Define Routes
 // app.use("/api/users", require("./routes/user"));

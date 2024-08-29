@@ -1,17 +1,24 @@
 // app.js
-const express = require("express");
-const connectDB = require("./config/db");
-const passport = require("passport");
-const LocalStrategy = require("passport-local").Strategy;
-const cors = require("cors");
+const express = require('express');
+const connectDB = require('./config/db');
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
+const cors = require('cors');
 const app = express();
-const User = require("./models/User");
+const User = require('./models/User');
+const authRoutes = require('./routes/auth');
+const logger = require('./middlewares/logger');
+const authMiddleware = require('./middlewares/authMiddleware');
 
 /** cors config */
-app.use(cors());
+const corsOptions = {
+  origin: 'http://localhost:3000', // Specify the frontend origin
+  credentials: true, // Allow credentials (cookies, etc.) to be sent
+};
+app.use(cors(corsOptions));
 
 /** Enviroment variables */
-require("dotenv").config();
+require('dotenv').config();
 
 // Connect to MongoDB
 connectDB();
@@ -24,12 +31,10 @@ app.use(passport.initialize());
 app.use(express.json());
 
 /** Middlewares */
-const authMiddleware = require("./middlewares/authMiddleware");
+app.use(logger);
 
-// // Define Routes
-// app.use("/api/users", require("./routes/user"));
-// app.use("/api/pdfs", require("./routes/pdf"));
-// app.use("/api/metadata", require("./routes/metadata"));
+// Routes
+app.use('/api', authRoutes);
 
 const PORT = process.env.PORT || 3003;
 

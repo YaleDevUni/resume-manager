@@ -1,21 +1,9 @@
 import './App.css';
-import Home from './pages/Home/Home';
-import Login from './pages/Auth/Login';
-import SignUp from './pages/Auth/SignUp';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { Fragment } from 'react';
+import { RouterProvider } from 'react-router-dom';
+import router from './router/Router';
 function App() {
-  return (
-    <Router>
-      <Routes>
-        {/* default / direct to /home */}
-        <Route path="/" element={<Home />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />
-        {/* Add other routes here */}
-      </Routes>
-    </Router>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;

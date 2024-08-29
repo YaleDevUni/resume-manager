@@ -25,7 +25,6 @@ export const register = createAsyncThunk(
 export const login = createAsyncThunk(
   'user/login',
   async ({ username, password }, { rejectWithValue }) => {
-    console.log('username triggered', username);
     // FIXME: Remove after testing
     // await new Promise(resolve => setTimeout(resolve, 500));
     try {
@@ -52,6 +51,7 @@ const userSlice = createSlice({
     user: null,
     status: 'idle',
     isLoggedIn: false,
+    token: null,
     error: null,
   },
   reducers: {
@@ -66,7 +66,7 @@ const userSlice = createSlice({
       })
       .addCase(register.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.user = action.payload;
+        // state.user = action.payload;
       })
       .addCase(register.rejected, (state, action) => {
         state.status = 'failed';
@@ -77,7 +77,8 @@ const userSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.user = action.payload;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
         state.isLoggedIn = true;
       })
       .addCase(login.rejected, (state, action) => {

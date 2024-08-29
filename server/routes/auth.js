@@ -25,11 +25,14 @@ router.post(
   '/auth/login',
   passport.authenticate('local', { session: false }),
   (req, res) => {
+    const expiresIn = '24h';
     const token = jwt.sign({ userId: req.user._id }, process.env.JWT_SECRET, {
       //  1h
-      expiresIn: '1h',
+      expiresIn,
     });
-    res.json({ token });
+    // user
+    const user = req.user;
+    res.json({ token, user, expiresIn });
   }
 );
 

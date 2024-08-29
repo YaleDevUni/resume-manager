@@ -3,18 +3,24 @@ import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { login } from '../../features/user/userSlice';
 import { useAlerts, AlertContainer } from '../../hooks/useAlerts';
+import useLocalStorage from '../../hooks/useLocalStorage';
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const { alerts, addAlert } = useAlerts();
-  const { status, error } = useSelector(state => state.user);
+  const { setLocalStorageStateValue } = useLocalStorage('token', null);
+  const { status, user, error } = useSelector(state => state.user);
   const dispatch = useDispatch();
   const location = useLocation();
+  const navigate = useNavigate();
   const handleSubmit = async e => {
     e.preventDefault();
     try {
-      await dispatch(login({ username, password })).unwrap();
-      // addAlert('Login successful', 'success');
+      const { token, userInfo } = await dispatch(
+        login({ username, password })
+      ).unwrap();
+      setLocalStorageStateValue({ token });
+      navigate('/dashboard', { state: { userInfo } });
     } catch (err) {
       addAlert(err, 'error');
     }

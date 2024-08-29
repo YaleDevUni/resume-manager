@@ -16,7 +16,7 @@ module.exports = (req, res, next) => {
   // // Capture start time to calculate response time later
   const start = Date.now();
 
-  // const uuid = req.headers['x-uuid'] || 'Unknown UUID';
+  const uuid = req.headers['x-uuid'] || 'Unknown UUID';
 
   // Log the request details when the request starts
   // console.log(

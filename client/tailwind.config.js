@@ -3,6 +3,12 @@ module.exports = {
   content: ['./src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {
+      width: {
+        100: '25rem',
+        150: '37.5rem',
+        200: '50rem',
+        250: '62.5rem',
+      },
       keyframes: {
         fadeOut: {
           '0%': { opacity: 1 },

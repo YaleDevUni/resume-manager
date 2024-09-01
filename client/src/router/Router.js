@@ -2,6 +2,7 @@ import Home from '../pages/Home/Home';
 import Login from '../pages/Auth/Login';
 import SignUp from '../pages/Auth/SignUp';
 import DashBoard from '../pages/DashBoard/DashBoard';
+import PdfUploader from '../pages/PdfUploader/RecruitmentAndPdf';
 import ProtectedRoute from './ProtectedRoute';
 import { createBrowserRouter } from 'react-router-dom';
 import { isAuthenticated } from '../services/AuthService';
@@ -30,6 +31,10 @@ const router = createBrowserRouter([
       {
         path: '/dashboard',
         element: <DashBoard />,
+      },
+      {
+        path: '/dashboard/pdf-uploader',
+        element: <PdfUploader />,
       },
       // Add other protected routes here if needed
     ],

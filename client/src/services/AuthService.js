@@ -17,6 +17,14 @@ export const isTokenExpired = token => {
     return true;
   }
 };
+export const getUser = () => {
+  const token = getToken();
+  if (token) {
+    const user = jwtDecode(token);
+    return user;
+  }
+  return null;
+};
 
 export const isAuthenticated = () => {
   const token = getToken();

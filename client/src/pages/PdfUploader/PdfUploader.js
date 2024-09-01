@@ -22,7 +22,7 @@ const PdfUploader = () => {
         {Array.from({ length: 20 }).map((_, index) => (
           <div
             className={` py-2 flex flex-row items-center justify-between gap-8 ${
-              index % 2 == 1 ? 'bg-slate-100' : 'bg-slate-200'
+              index % 2 === 1 ? 'bg-slate-100' : 'bg-slate-200'
             }`}
           >
             <div className=" ml-4 font-bold">Resume{index + 1}.pdf</div>

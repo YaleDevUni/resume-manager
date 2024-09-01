@@ -8,7 +8,11 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const { alerts, addAlert } = useAlerts();
-  const { setLocalStorageStateValue } = useLocalStorage('token', null);
+  // const { setLocalStorageStateValue: setToken } = useLocalStorage(
+  //   'token',
+  //   null,
+  //   ''
+  // );
   const { status, user, error } = useSelector(state => state.user);
   const dispatch = useDispatch();
   const location = useLocation();
@@ -19,8 +23,12 @@ const Login = () => {
       const { token, userInfo } = await dispatch(
         login({ username, password })
       ).unwrap();
-      setLocalStorageStateValue({ token });
+      // setToken(token);
+      localStorage.setItem('token', token);
+      // alert('Login successful');
+      console.log('Navigating to /dashboard');
       navigate('/dashboard', { state: { userInfo } });
+      console.log(token);
     } catch (err) {
       addAlert(err, 'error');
     }

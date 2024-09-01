@@ -7,7 +7,9 @@ const cors = require('cors');
 const app = express();
 const User = require('./models/User');
 const authRoutes = require('./routes/auth');
+const recruitRoutes = require('./routes/recruit');
 const logger = require('./middlewares/logger');
+
 const authMiddleware = require('./middlewares/authMiddleware');
 
 /** cors config */
@@ -35,6 +37,7 @@ app.use(logger);
 
 // Routes
 app.use('/api', authRoutes);
+app.use('/api', recruitRoutes);
 
 const PORT = process.env.PORT || 3003;
 

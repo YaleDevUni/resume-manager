@@ -1,7 +1,7 @@
 // src/features/user/userSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { loginUser, registerUser, updateUser, logoutUser } from './userApi';
-
+import { getUser } from '../../services/AuthService';
 // Async actions
 export const register = createAsyncThunk(
   'user/register',
@@ -48,7 +48,7 @@ export const login = createAsyncThunk(
 const userSlice = createSlice({
   name: 'user',
   initialState: {
-    user: null,
+    user: getUser(),
     status: 'idle',
     isLoggedIn: false,
     token: null,

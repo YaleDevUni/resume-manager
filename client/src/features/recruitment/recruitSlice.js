@@ -105,6 +105,9 @@ const recruitmentSlice = createSlice({
     resetError: state => {
       state.error = null;
     },
+    selectRecruitment: (state, action) => {
+      state.recruitment = action.payload;
+    },
   },
   extraReducers: builder => {
     builder
@@ -174,5 +177,5 @@ const recruitmentSlice = createSlice({
   },
 });
 
-export const { resetError } = recruitmentSlice.actions;
+export const { resetError, selectRecruitment } = recruitmentSlice.actions;
 export default recruitmentSlice.reducer;

@@ -20,15 +20,14 @@ const Login = () => {
   const handleSubmit = async e => {
     e.preventDefault();
     try {
+    
       const { token, userInfo } = await dispatch(
         login({ username, password })
       ).unwrap();
       // setToken(token);
       localStorage.setItem('token', token);
-      // alert('Login successful');
-      console.log('Navigating to /dashboard');
+      alert('Login successful');
       navigate('/dashboard', { state: { userInfo } });
-      console.log(token);
     } catch (err) {
       addAlert(err, 'error');
     }
@@ -52,7 +51,7 @@ const Login = () => {
             autoComplete="on"
             className="border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] w-full p-3 mb-6 "
             value={username}
-            onChange={e => setUsername(e.target.value)}
+            onChange={e => setUsername(e.target.value.trim())}
           ></input>
           <input
             id="password"
@@ -61,7 +60,7 @@ const Login = () => {
             autoComplete="current-password"
             className="border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] w-full p-3 mb-6 "
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={e => setPassword(e.target.value.trim())}
           ></input>
         </form>
         <div className=" w-11/12 flex flex-row justify-end mb-6">

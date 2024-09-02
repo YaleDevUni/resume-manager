@@ -23,7 +23,14 @@ const userSchema = new mongoose.Schema(
     },
   }
 );
-
+userSchema.set('toObject', {
+  virtuals: true,
+  versionKey: false,
+});
+userSchema.set('toJSON', {
+  virtuals: true,
+  versionKey: false,
+});
 // Apply passportLocalMongoose plugin
 userSchema.plugin(passportLocalMongoose);
 

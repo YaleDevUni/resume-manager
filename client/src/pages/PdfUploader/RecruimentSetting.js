@@ -1,62 +1,110 @@
 import Button from '../../components/Button';
+import Pagination from '../../components/Pagination';
 import { useDispatch, useSelector } from 'react-redux';
 import { useState, useEffect, useCallback } from 'react';
 import { useAlerts, AlertContainer } from '../../hooks/useAlerts';
 import useLocalStorage from '../../hooks/useLocalStorage';
+import { MdDeleteForever } from 'react-icons/md';
 import {
   createRecruitmentAsync,
   fetchAllRecruitments,
   fetchRecruitmentById,
   updateRecruitmentAsync,
   deleteRecruitmentAsync,
+  selectRecruitment,
 } from '../../features/recruitment/recruitSlice';
 
 const RecruimentSetting = () => {
-  const { alerts, addAlert } = useAlerts();
+  // Local state
   const [recruitmentId, setRecruitmentId] = useState(''); // State to hold the recruitment ID input
-  const dispatch = useDispatch();
-  // Inline selectors to get the status and error from the store
-  const status = useSelector(state => state.recruitment.status);
-  const error = useSelector(state => state.recruitment.error);
-  const recruitments = useSelector(state => state.recruitment.recruitments);
-  const recruitment = useSelector(state => state.recruitment.recruitment);
-  const { user } = useSelector(state => state.user);
+  const [recruitmentAdded, setRecruitmentAdded] = useState(false); // State to track if a recruitment has been added
+  const [recruitmentDeleted, setRecruitmentDeleted] = useState(false); // State to track if a recruitment has been deleted
+  // Custom hooks
+  const { alerts, addAlert } = useAlerts(); // Custom hook to handle alerts
+
+  // Redux hooks
+  const dispatch = useDispatch(); // Redux dispatch function
+
+  // Redux selectors
+  const status = useSelector(state => state.recruitment.status); // Status of the recruitment fetching/creating process
+  const error = useSelector(state => state.recruitment.error); // Error message from recruitment-related actions
+  const recruitments = useSelector(state => state.recruitment.recruitments); // List of all recruitments
+  const recruitment = useSelector(state => state.recruitment.recruitment); // Single recruitment detail
+  const { user } = useSelector(state => state.user); // Currently authenticated user
+  const selectedRecruitment = useSelector(
+    state => state.recruitment.recruitment
+  ); // Currently selected recruitment
   const {
     localStorageValue: currentPage,
     setLocalStorageStateValue: setCurrentPage,
   } = useLocalStorage('recruitmentsCurrentPage', 1, user.userId);
 
-  const handleAddNew = () => {
-    try {
-      if (recruitmentId.trim()) {
-        const recruitmentData = {
-          recruitmentID: recruitmentId,
-          skillsToMatch: [], // Assuming you're starting with an empty array for skills
-          user: user.userId, // Replace with the actual user ID or leave empty if it will be filled in the backend
-        };
-        dispatch(createRecruitmentAsync(recruitmentData));
+  const handleAddNew = async () => {
+    if (recruitmentId.trim()) {
+      const recruitmentData = {
+        recruitmentID: recruitmentId,
+        skillsToMatch: [], // Starting with an empty array for skills
+        user: user.userId, // Replace with the actual user ID or leave empty if it will be filled in the backend
+      };
+      try {
+        const newRecruiment = await dispatch(
+          createRecruitmentAsync(recruitmentData)
+        ).unwrap();
         setRecruitmentId(''); // Clear the input after dispatching
+        setRecruitmentAdded(true); // Set the recruitment added state to true
+        handleSelectRecruitment(newRecruiment); // Select the newly added recruitment
         addAlert('Recruitment added successfully', 'success');
+      } catch (error) {
+        addAlert(error || 'An unexpected error occurred', 'error');
       }
-    } catch (error) {
-      // addAlert({ message: error.message, type: 'error' });
+    } else {
+      addAlert('Recruitment ID cannot be empty', 'error');
     }
   };
-  useEffect(() => {
-    const fetchInitialData = () => {
-      dispatch(
-        fetchAllRecruitments({ limit: recruitments.limit, page: currentPage })
-      );
-    };
+  const handleDelete = async recruitment => {
+    try {
+      if (
+        !window.confirm(
+          `Are you sure you want to delete the recruitment ${recruitment.recruitmentID}?`
+        )
+      )
+        return;
+      await dispatch(deleteRecruitmentAsync(recruitment.id)).unwrap();
+      // check if the deleted recruitment is the selected recruitment
+      if (selectedRecruitment.id === recruitment.id) {
+        console.log('selectedRecruitment.id', selectedRecruitment.id);
+        dispatch(selectRecruitment({})); // Clear the selected recruitment
+      }
+      setRecruitmentDeleted(true); // Set the recruitment deleted state to true
+      addAlert('Recruitment deleted successfully', 'success');
+    } catch (error) {
+      addAlert(error || 'An unexpected error occurred', 'error');
+    }
+  };
 
-    fetchInitialData();
-  }, [dispatch, recruitments.limit, currentPage]);
+  const handleSelectRecruitment = selectedRecruitment => {
+    // select current recruitment id
+    dispatch(selectRecruitment(selectedRecruitment));
+  };
+
+  const handleKeyDown = e => {
+    if (e.key === 'Enter') {
+      handleAddNew();
+    }
+  };
+
+  useEffect(() => {
+    dispatch(
+      fetchAllRecruitments({ limit: recruitment.limit, page: currentPage })
+    );
+    setRecruitmentAdded(false); // Reset the recruitment added state
+    setRecruitmentDeleted(false); // Reset the recruitment deleted state
+  }, [recruitmentAdded, recruitmentDeleted]);
 
   const handlePageChange = page => {
     setCurrentPage(page); // Update localStorage when the page changes
     dispatch(fetchAllRecruitments({ limit: recruitments.limit, page }));
   };
-
   return (
     <>
       <AlertContainer alerts={alerts} />{' '}
@@ -71,7 +119,8 @@ const RecruimentSetting = () => {
               name="recruitmentId"
               placeholder="Recruitment ID"
               value={recruitmentId}
-              onChange={e => setRecruitmentId(e.target.value)} // Update state on input change
+              onChange={e => setRecruitmentId(e.target.value.trim())} // Update state on input change
+              onKeyDown={handleKeyDown}
             />
             <Button
               className="font-bold"
@@ -82,13 +131,17 @@ const RecruimentSetting = () => {
             </Button>
           </div>
         </div>
-        <div className=" font-bold ">Select Recruitment ID</div>
+        <div className="font-bold text-xl  flex flex-row justify-between">
+          <div className=" "> Select Recruitment ID</div>
+        </div>
+
         <table className="w-full">
           <thead>
             <tr className=" bg-black text-white">
               <th className=" text-start">Recruitment ID</th>
               <th className=" text-start">Created At</th>
-              <th className=" text-start">Modified At</th>
+              <th className=" text-start"># Applicant</th>
+              <th className=" text-start"></th>
             </tr>
           </thead>
           <tbody>
@@ -108,33 +161,62 @@ const RecruimentSetting = () => {
                 key={recruitment._id}
                 className={` ${
                   index % 2 === 0 ? 'bg-gray-100' : 'bg-gray-200'
-                } hover:bg-gray-300 cursor-pointer h-full`}
+                }  cursor-pointer ${
+                  recruitment.id === selectedRecruitment?.id
+                    ? 'bg-slate-400'
+                    : 'hover:bg-gray-300 '
+                } `}
               >
-                <td>{recruitment.recruitmentID}</td>
-                <td>{recruitment.createdAt}</td>
-                <td>{recruitment.updatedAt}</td>
+                <td
+                  onClick={() => {
+                    handleSelectRecruitment(recruitment);
+                  }}
+                >
+                  {recruitment.recruitmentID}
+                  {selectRecruitment.id}
+                </td>
+                <td
+                  onClick={() => {
+                    handleSelectRecruitment(recruitment);
+                  }}
+                >
+                  {new Date(recruitment.createdAt).toISOString().split('T')[0]}
+                </td>
+                <td
+                  onClick={() => {
+                    handleSelectRecruitment(recruitment);
+                  }}
+                >
+                  {JSON.stringify(recruitment.applicants)}
+                </td>
+
+                <td
+                  className=" hover:bg-red-500 hover:fill-white
+                 justify-center flex flex-row border-l-2 border-dashed border-gray-400"
+                  onClick={() => {
+                    handleDelete(recruitment);
+                  }}
+                >
+                  <button>
+                    <MdDeleteForever className=" h-6 w-6 " />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <div className=" w-full flex flex-row justify-center gap-3 ">
-          {Array.from({ length: recruitments.totalPages }).map((_, index) => (
-            <button
-              key={index}
-              onClick={() => handlePageChange(index + 1)}
-              className={` ${
-                index + 1 === recruitments.currentPage
-                  ? 'text-white bg-black'
-                  : ''
-              }`}
-            >
-              {index + 1}{' '}
-            </button>
-          ))}
-        </div>
+        <Pagination
+          totalPages={recruitments.totalPages}
+          currentPage={currentPage}
+          handlePageChange={handlePageChange}
+        />
         <hr className="my-4" />
         <div className=" text-xl mb-4">
-          Current Recruitment ID: <span> Seng123</span>
+          Current Recruitment ID:{' '}
+          <span className=" font-bold">
+            {' '}
+            {selectedRecruitment.recruitmentID}
+          </span>
         </div>
         <div className=" flex flex-row gap-2">
           {' '}

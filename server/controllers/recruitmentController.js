@@ -1,6 +1,20 @@
 const Recruitment = require('../models/Recruitment');
 const User = require('../models/User');
 // CREATE - Add a new recruitment
+const handleError = (error, res) => {
+  if (error.code === 11000) {
+    // Handle duplicate key error
+    res.status(400).json({ message: 'The Recruitment ID already exist.' });
+  } else if (error.name === 'ValidationError') {
+    // Handle validation errors
+    const messages = Object.values(error.errors).map(val => val.message);
+    res.status(400).json({ message: messages.join('. ') });
+  } else {
+    // Handle other types of errors
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
 exports.createRecruitment = async (req, res) => {
   try {
     const recruitment = new Recruitment(req.body);
@@ -9,24 +23,27 @@ exports.createRecruitment = async (req, res) => {
     const savedRecruitment = await recruitment.save();
     res.status(201).json(savedRecruitment);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    handleError(error, res);
   }
 };
 
 // READ - Get all recruitments with pagination
 exports.getAllRecruitments = async (req, res) => {
   try {
+    const user = await User.findById(req.user.userId);
+
     const { page = 1, limit = 10 } = req.query;
 
-    const recruitments = await Recruitment.find()
-      .populate('user createdBy')
+    const recruitments = await Recruitment.find({ createdBy: user._id })
+      .populate('createdBy')
       .limit(limit * 1) // Convert limit to number and limit the results
       .skip((page - 1) * limit) // Skip the number of documents for pagination
+      .sort({ createdAt: -1 }) // Sort by date in descending order
       .exec();
 
     // Get total documents for pagination calculation
 
-    const count = await Recruitment.countDocuments();
+    const count = await Recruitment.countDocuments({ createdBy: user._id });
 
     res.json({
       recruitments,
@@ -35,8 +52,7 @@ exports.getAllRecruitments = async (req, res) => {
       totalRecruitments: count,
     });
   } catch (error) {
-    console.log('err from here', error);
-    res.status(500).json({ message: error.message });
+    handleError(error, res);
   }
 };
 
@@ -51,7 +67,7 @@ exports.getRecruitmentById = async (req, res) => {
     }
     res.json(recruitment);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    handleError(error, res);
   }
 };
 
@@ -71,7 +87,7 @@ exports.updateRecruitmentById = async (req, res) => {
     }
     res.json(recruitment);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    handleError(error, res);
   }
 };
 
@@ -84,13 +100,13 @@ exports.deleteRecruitmentById = async (req, res) => {
       return res.status(404).json({ message: 'Recruitment not found' });
     }
     // check if the user is the owner of the recruitment
-    if (recruitment.createdBy.toString() !== req.user._id.toString()) {
+    if (recruitment.createdBy.toString() !== req.user.userId) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
     // delete the recruitment
     await Recruitment.findByIdAndDelete(req.params.id);
     res.json({ message: 'Recruitment deleted' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Failed to delete recruitment' });
   }
 };

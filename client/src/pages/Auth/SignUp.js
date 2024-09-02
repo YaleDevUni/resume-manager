@@ -17,11 +17,13 @@ const SignUp = () => {
   const navigate = useNavigate();
   const handleSubmit = async e => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      addAlert('Passwords do not match', 'error');
-      return;
-    }
+
     try {
+      // check if password contains spaces and invalid characters
+      if (/\s/.test(password))
+        throw new Error('Password cannot contain spaces');
+      if (password !== confirmPassword)
+        throw new Error('Passwords do not match');
       setPreventPress(true);
       await dispatch(register({ username, password })).unwrap();
       addAlert('Registration successful', 'success', 1500, () => {
@@ -32,7 +34,7 @@ const SignUp = () => {
       });
     } catch (err) {
       setPreventPress(false);
-      addAlert(err, 'error');
+      addAlert(err?.message || err, 'error');
     }
   };
 
@@ -60,7 +62,7 @@ const SignUp = () => {
             autoComplete="on"
             className="border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] w-full p-3 mb-6 "
             value={username}
-            onChange={e => setUsername(e.target.value)}
+            onChange={e => setUsername(e.target.value.trim())}
           ></input>
           <input
             id="password"
@@ -69,7 +71,7 @@ const SignUp = () => {
             autoComplete="new-password"
             className="border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] w-full p-3 mb-6 "
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={e => setPassword(e.target.value.trim())}
           ></input>
           <input
             id="confirm-password"

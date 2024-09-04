@@ -105,7 +105,7 @@ const recruitmentSlice = createSlice({
     resetError: state => {
       state.error = null;
     },
-    selectRecruitment: (state, action) => {
+    setRecruitmentSync: (state, action) => {
       state.recruitment = action.payload;
     },
   },
@@ -131,8 +131,8 @@ const recruitmentSlice = createSlice({
         state.recruitment.status = 'loading';
       })
       .addCase(fetchRecruitmentById.fulfilled, (state, action) => {
+        state.recruitment = action.payload;
         state.recruitment.status = 'succeeded';
-        state.recruitment.data = action.payload;
       })
       .addCase(fetchRecruitmentById.rejected, (state, action) => {
         state.recruitment.status = 'failed';
@@ -156,7 +156,7 @@ const recruitmentSlice = createSlice({
       })
       .addCase(updateRecruitmentAsync.fulfilled, (state, action) => {
         state.recruitment.status = 'succeeded';
-        state.recruitment.data = action.payload;
+        state.recruitment = action.payload;
       })
       .addCase(updateRecruitmentAsync.rejected, (state, action) => {
         state.recruitment.status = 'failed';
@@ -177,5 +177,5 @@ const recruitmentSlice = createSlice({
   },
 });
 
-export const { resetError, selectRecruitment } = recruitmentSlice.actions;
+export const { resetError, setRecruitmentSync } = recruitmentSlice.actions;
 export default recruitmentSlice.reducer;

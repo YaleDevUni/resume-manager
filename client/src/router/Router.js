@@ -26,7 +26,7 @@ const router = createBrowserRouter([
     element: <SignUp />,
   },
   {
-    element: <ProtectedRoute isAuthenticated={isAuthenticated()} />, // Protects the nested routes
+    element: <ProtectedRoute isAuthenticated={isAuthenticated} />, // Protects the nested routes
     children: [
       {
         path: '/dashboard',

@@ -28,6 +28,8 @@ export const getUser = () => {
 
 export const isAuthenticated = () => {
   const token = getToken();
+  console.log(token);
+  console.log(localStorage.getItem('token'));
   // Check for token presence and validate that it hasn't expired
   return token && !isTokenExpired(token);
 };

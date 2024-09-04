@@ -13,6 +13,7 @@ const pdfSchema = new mongoose.Schema(
     contentType: {
       type: String,
       required: true,
+      default: 'application/pdf',
     },
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,

@@ -9,7 +9,8 @@ const User = require('./models/User');
 const authRoutes = require('./routes/auth');
 const recruitRoutes = require('./routes/recruit');
 const logger = require('./middlewares/logger');
-
+const skillRoutes = require('./routes/skill');
+const resumeRoutes = require('./routes/resume');
 const authMiddleware = require('./middlewares/authMiddleware');
 
 /** cors config */
@@ -38,6 +39,8 @@ app.use(logger);
 // Routes
 app.use('/api', authRoutes);
 app.use('/api', recruitRoutes);
+app.use('/api', skillRoutes);
+app.use('/api', resumeRoutes);
 
 const PORT = process.env.PORT || 3003;
 

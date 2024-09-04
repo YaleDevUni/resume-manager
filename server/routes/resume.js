@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const Resume = require('../models/Resume');
 const authMiddleware = require('../middlewares/authMiddleware');
-const User = require('../models/User');
+const resumeController = require('../controllers/resumeController');
 
+// CREATE - Add resumes
+router.post('/resumes', authMiddleware, resumeController.createBulkResumes);
 
+module.exports = router;

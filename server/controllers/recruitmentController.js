@@ -11,6 +11,7 @@ const handleError = (error, res) => {
     res.status(400).json({ message: messages.join('. ') });
   } else {
     // Handle other types of errors
+    console.error(error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -35,6 +36,7 @@ exports.getAllRecruitments = async (req, res) => {
     const { page = 1, limit = 10 } = req.query;
 
     const recruitments = await Recruitment.find({ createdBy: user._id })
+      .select('_id recruitmentID createdAt')
       .populate('createdBy')
       .limit(limit * 1) // Convert limit to number and limit the results
       .skip((page - 1) * limit) // Skip the number of documents for pagination
@@ -60,7 +62,7 @@ exports.getAllRecruitments = async (req, res) => {
 exports.getRecruitmentById = async (req, res) => {
   try {
     const recruitment = await Recruitment.findById(req.params.id).populate(
-      'user createdBy'
+      'createdBy'
     );
     if (!recruitment) {
       return res.status(404).json({ message: 'Recruitment not found' });

@@ -50,6 +50,7 @@ const ResumeSchema = new mongoose.Schema(
       default: false,
     },
     resumePDF: {
+      // one-to-one relationship with the PDF model
       type: mongoose.Schema.Types.ObjectId,
       ref: 'PDF', // Reference to the PDF model
       required: true, // Assuming the PDF is mandatory

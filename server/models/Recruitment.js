@@ -9,6 +9,12 @@ const recruitmentSchema = new mongoose.Schema(
     skillsToMatch: {
       type: [String], // Array of skills required for the position
       required: true,
+      validate: {
+        validator: function (v) {
+          return Array.isArray(v) && new Set(v).size === v.length;
+        },
+        message: 'Skills must be unique',
+      },
     },
     // user: {
     //   type: mongoose.Schema.Types.ObjectId,

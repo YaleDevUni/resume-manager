@@ -1,5 +1,6 @@
 import Button from '../../components/Button';
 import Pagination from '../../components/Pagination';
+import SkillSearchBar from '../../components/SkillSearch';
 import { useDispatch, useSelector } from 'react-redux';
 import { useState, useEffect, useCallback } from 'react';
 import { useAlerts, AlertContainer } from '../../hooks/useAlerts';
@@ -11,7 +12,7 @@ import {
   fetchRecruitmentById,
   updateRecruitmentAsync,
   deleteRecruitmentAsync,
-  selectRecruitment,
+  setRecruitmentSync,
 } from '../../features/recruitment/recruitSlice';
 
 const RecruimentSetting = () => {
@@ -31,14 +32,13 @@ const RecruimentSetting = () => {
   const recruitments = useSelector(state => state.recruitment.recruitments); // List of all recruitments
   const recruitment = useSelector(state => state.recruitment.recruitment); // Single recruitment detail
   const { user } = useSelector(state => state.user); // Currently authenticated user
-  const selectedRecruitment = useSelector(
-    state => state.recruitment.recruitment
-  ); // Currently selected recruitment
+  // TODO: Fix selector variable name
   const {
     localStorageValue: currentPage,
     setLocalStorageStateValue: setCurrentPage,
   } = useLocalStorage('recruitmentsCurrentPage', 1, user.userId);
 
+  /** Handlers */
   const handleAddNew = async () => {
     if (recruitmentId.trim()) {
       const recruitmentData = {
@@ -61,19 +61,33 @@ const RecruimentSetting = () => {
       addAlert('Recruitment ID cannot be empty', 'error');
     }
   };
-  const handleDelete = async recruitment => {
+  const handleUpdate = async updatedData => {
+    try {
+      await dispatch(
+        updateRecruitmentAsync({
+          id: recruitment.id,
+          updatedData: updatedData,
+        })
+      ).unwrap();
+      addAlert('Recruitment updated successfully', 'success');
+      // dispatch(setRecruitmentSync(newData)); // Update the selected recruitment with the new data
+    } catch (error) {
+      addAlert(error || 'An unexpected error occurred', 'error');
+    }
+  };
+
+  const handleDelete = async recruitmentToDel => {
     try {
       if (
         !window.confirm(
-          `Are you sure you want to delete the recruitment ${recruitment.recruitmentID}?`
+          `Are you sure you want to delete the recruitment ${recruitmentToDel.recruitmentID}?`
         )
       )
         return;
-      await dispatch(deleteRecruitmentAsync(recruitment.id)).unwrap();
+      await dispatch(deleteRecruitmentAsync(recruitmentToDel.id)).unwrap();
       // check if the deleted recruitment is the selected recruitment
-      if (selectedRecruitment.id === recruitment.id) {
-        console.log('selectedRecruitment.id', selectedRecruitment.id);
-        dispatch(selectRecruitment({})); // Clear the selected recruitment
+      if (recruitment.id === recruitmentToDel.id) {
+        dispatch(setRecruitmentSync({})); // Clear the selected recruitment
       }
       setRecruitmentDeleted(true); // Set the recruitment deleted state to true
       addAlert('Recruitment deleted successfully', 'success');
@@ -81,18 +95,22 @@ const RecruimentSetting = () => {
       addAlert(error || 'An unexpected error occurred', 'error');
     }
   };
-
-  const handleSelectRecruitment = selectedRecruitment => {
-    // select current recruitment id
-    dispatch(selectRecruitment(selectedRecruitment));
+  const handleSelectRecruitment = recruitment => {
+    console.log('recruitment', recruitment);
+    // fetch recruitment by id
+    dispatch(fetchRecruitmentById(recruitment.id));
   };
-
   const handleKeyDown = e => {
     if (e.key === 'Enter') {
       handleAddNew();
     }
   };
+  const handlePageChange = page => {
+    setCurrentPage(page); // Update localStorage when the page changes
+    dispatch(fetchAllRecruitments({ limit: recruitments.limit, page }));
+  };
 
+  /** Side Effects */
   useEffect(() => {
     dispatch(
       fetchAllRecruitments({ limit: recruitment.limit, page: currentPage })
@@ -101,10 +119,6 @@ const RecruimentSetting = () => {
     setRecruitmentDeleted(false); // Reset the recruitment deleted state
   }, [recruitmentAdded, recruitmentDeleted]);
 
-  const handlePageChange = page => {
-    setCurrentPage(page); // Update localStorage when the page changes
-    dispatch(fetchAllRecruitments({ limit: recruitments.limit, page }));
-  };
   return (
     <>
       <AlertContainer alerts={alerts} />{' '}
@@ -145,56 +159,44 @@ const RecruimentSetting = () => {
             </tr>
           </thead>
           <tbody>
-            {/* {Array.from({ length: 10 }).map((_, index) => (
+            {recruitments.data.map((recruit, index) => (
               <tr
-                className={` ${
-                  index % 2 === 0 ? 'bg-gray-100' : 'bg-gray-200'
-                } hover:bg-gray-300 cursor-pointer`}
-              >
-                <td key={index}>Seng123</td>
-                <td key={index + '123'}>2014/12/12</td>
-                <td key={index + '1234'}>2014/12/12</td>
-              </tr>
-            ))} */}
-            {recruitments.data.map((recruitment, index) => (
-              <tr
-                key={recruitment._id}
+                key={recruit._id}
                 className={` ${
                   index % 2 === 0 ? 'bg-gray-100' : 'bg-gray-200'
                 }  cursor-pointer ${
-                  recruitment.id === selectedRecruitment?.id
+                  recruit.id === recruitment?.id
                     ? 'bg-slate-400'
                     : 'hover:bg-gray-300 '
                 } `}
               >
                 <td
                   onClick={() => {
-                    handleSelectRecruitment(recruitment);
+                    handleSelectRecruitment(recruit);
                   }}
                 >
-                  {recruitment.recruitmentID}
-                  {selectRecruitment.id}
+                  {recruit.recruitmentID}
                 </td>
                 <td
                   onClick={() => {
-                    handleSelectRecruitment(recruitment);
+                    handleSelectRecruitment(recruit);
                   }}
                 >
-                  {new Date(recruitment.createdAt).toISOString().split('T')[0]}
+                  {new Date(recruit.createdAt).toISOString().split('T')[0]}
                 </td>
                 <td
                   onClick={() => {
-                    handleSelectRecruitment(recruitment);
+                    handleSelectRecruitment(recruit);
                   }}
                 >
-                  {JSON.stringify(recruitment.applicants)}
+                  {JSON.stringify(recruit.applicants)}
                 </td>
 
                 <td
                   className=" hover:bg-red-500 hover:fill-white
                  justify-center flex flex-row border-l-2 border-dashed border-gray-400"
                   onClick={() => {
-                    handleDelete(recruitment);
+                    handleDelete(recruit);
                   }}
                 >
                   <button>
@@ -215,29 +217,37 @@ const RecruimentSetting = () => {
           Current Recruitment ID:{' '}
           <span className=" font-bold">
             {' '}
-            {selectedRecruitment.recruitmentID}
+            {recruitment.recruitmentID || 'Please Select Recruiment First'}
           </span>
         </div>
-        <div className=" flex flex-row gap-2">
-          {' '}
-          <div>
-            <input
-              className="  p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)]"
-              type="text"
-              id="skillsToMatch"
-              name="skillsToMatch"
-              placeholder="Add Required Skills"
-            />
-          </div>
-          <Button>Add Required Skills</Button>
-        </div>
-        <div className=" flex flex-row flex-wrap gap-1">
-          {Array.from({ length: 10 }).map((_, index) => (
-            <div
-              className={` my-2 p-2 border shadow-[0_0_6px_rgba(0,0,0,0.2)] rounded-lg`}
+
+        <SkillSearchBar
+          callBackAdd={selectedSkill => {
+            if (!recruitment._id) {
+              addAlert('Please select a recruitment', 'error');
+              return;
+            }
+            handleUpdate({
+              skillsToMatch: [...recruitment.skillsToMatch, selectedSkill],
+            });
+          }}
+        />
+        <div className=" mt-2 text-red-500">Click to delete a skill</div>
+        <div className="flex flex-row flex-wrap gap-1">
+          {recruitment?.skillsToMatch?.map((skill, index) => (
+            <Button
+              onClick={() => {
+                handleUpdate({
+                  skillsToMatch: recruitment.skillsToMatch.filter(
+                    (s, i) => i !== index
+                  ),
+                });
+              }}
+              key={index}
+              className=" font-bold mt-2"
             >
-              <div className=" text-center">Java</div>
-            </div>
+              {skill}
+            </Button>
           ))}
         </div>
       </div>

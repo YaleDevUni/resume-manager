@@ -18,16 +18,41 @@ authApi.interceptors.response.use(
   }
 );
 
-// upload bulk resumes
+// // upload bulk resumes
+// async function uploadBulkResumes(pdfs, recruitment_id) {
+//   try {
+//     const response = await authApi.post('', { pdfs, recruitment_id });
+//     return response.data;
+//   } catch (error) {
+//     console.error('Error uploading resumes:', error);
+//     return [];
+//   }
+// }
 async function uploadBulkResumes(pdfs, recruitment_id) {
   try {
-    const response = await authApi.post('', { pdfs, recruitment_id });
+    // Create a FormData object
+    const formData = new FormData();
+
+    // Append each PDF file to the FormData object
+    pdfs.forEach((pdf, index) => {
+      formData.append(`pdfs[${index}]`, new Blob([pdf.data]), pdf.filename);
+    });
+
+    // Append the recruitment_id
+    formData.append('recruitment_id', recruitment_id);
+
+    // Make the POST request
+    const response = await authApi.post('', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
     return response.data;
   } catch (error) {
     console.error('Error uploading resumes:', error);
     return [];
   }
 }
-
 export { uploadBulkResumes };
 export default authApi;

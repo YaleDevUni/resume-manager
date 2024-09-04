@@ -31,10 +31,12 @@ passport.use(new LocalStrategy(User.authenticate()));
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 app.use(passport.initialize());
-app.use(express.json());
+app.use(express.json({ limit: '100mb' }));
 
 /** Middlewares */
 app.use(logger);
+// Increase the URL-encoded payload limit
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // Routes
 app.use('/api', authRoutes);

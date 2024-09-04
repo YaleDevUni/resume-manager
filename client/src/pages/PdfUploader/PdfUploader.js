@@ -53,12 +53,13 @@ const PdfUploader = () => {
     setDragActive(false);
 
     const items = e.dataTransfer.items;
+    const files = e.dataTransfer.files;
     if (items && items.length > 0) {
       const pdfFiles = [];
 
-      const traverseFileTree = async (item, path = '') => {
-        return new Promise((resolve, reject) => {
-          if (item.isFile) {
+      const traverseFileTree = async (item, path = '', depth = 0) => {
+        return new Promise(resolve => {
+          if (item.isFile && depth > 0) {
             item.file(file => {
               if (file.type === 'application/pdf') {
                 pdfFiles.push(file);
@@ -66,13 +67,20 @@ const PdfUploader = () => {
               resolve();
             });
           } else if (item.isDirectory) {
+            // Only process the directory at the first level to avoid duplicates
             const dirReader = item.createReader();
             dirReader.readEntries(async entries => {
               for (let i = 0; i < entries.length; i++) {
-                await traverseFileTree(entries[i], `${path}${item.name}/`);
+                await traverseFileTree(
+                  entries[i],
+                  `${path}${item.name}/`,
+                  depth + 1
+                );
               }
               resolve();
             });
+          } else {
+            resolve();
           }
         });
       };
@@ -86,15 +94,46 @@ const PdfUploader = () => {
         }
       };
 
-      await traverseAllItems();
+      const addFiles = async () => {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          if (file.type === 'application/pdf') {
+            pdfFiles.push(file);
+          }
+        }
+      };
+
+      await Promise.all([traverseAllItems(), addFiles()]);
 
       if (pdfFiles.length > 0) {
-        setFiles(prevFiles => [...prevFiles, ...pdfFiles]);
-        setPdfCount(prevCount => prevCount + pdfFiles.length);
+        // Process all PDF files using Promise.all to await array buffers
+        const pdfs = await Promise.all(
+          pdfFiles.map(async (pdf, index) => {
+            const filename = pdf.name;
+            const data = await pdf.arrayBuffer(); // Convert file to ArrayBuffer
+
+            // Callback to track upload progress
+            handleUploadProgress(filename, index + 1, pdfFiles.length);
+
+            return {
+              filename,
+              data,
+            };
+          })
+        );
+
+        setFiles(prevFiles => [...prevFiles, ...pdfs]);
+        setPdfCount(prevCount => prevCount + pdfs.length);
       } else {
-        addAlert('No PDF files found in the uploaded folder.', 'error');
+        addAlert('No PDF files found in the uploaded items.', 'error');
       }
     }
+  };
+
+  // Callback function to handle upload progress
+  const handleUploadProgress = (filename, index, total) => {
+    console.log(`Uploading ${index}/${total}: ${filename}`);
+    // You can add more UI feedback here, like updating a progress bar
   };
 
   const handleRemoveFile = index => {
@@ -117,9 +156,10 @@ const PdfUploader = () => {
     console.log(files);
     const pdfData = files.map(file => ({
       filename: file.name,
+      // send buffer data using prototype
       data: file,
     }));
-
+    console.log('here', pdfData);
     try {
       await uploadBulkResumes(pdfData, recruitment.id);
       addAlert('Resumes uploaded successfully.', 'success');

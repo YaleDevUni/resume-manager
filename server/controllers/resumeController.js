@@ -51,17 +51,28 @@ exports.createResume = async (req, res) => {
 // Upload a bulk of resumes with associated PDFs
 exports.createBulkResumes = async (req, res) => {
   try {
-    const {pdfs,recruitment_id} = req.body;
-    console.log(pdfs);
-    // pdfs.forEach(async pdfData => {
-    //   const pdf = new PDF({
-    //     filename: pdfData.filename,
-    //     data: pdfData.data,
-    //     contentType: 'application/pdf',
-    //     uploadedBy: req.user.userId,
-    //   });
-    //   pdf.save();
-    // });
+    const recruitment_id = req.body.recruitment_id;
+    console.log('Recruitment ID:', recruitment_id);
+    console.log('Empty?', req.files);
+    const pdfFiles = req.files.filter(
+      file => file.mimetype === 'application/pdf'
+    );
+    pdfFiles.forEach(async pdf => {
+      const pdfDoc = new PDF({
+        filename: pdf.originalname,
+        data: pdf.buffer,
+        contentType: pdf.mimetype,
+        uploadedBy: req.user.userId,
+      });
+      const pdfInMongo = await pdfDoc.save();
+      const resume = new Resume({
+        name: pdf.originalname,
+        createdBy: req.user.userId,
+        recruitmentID: recruitment_id,
+        resumePDF: pdfInMongo._id,
+      });
+      await resume.save();
+    });
     res.status(201).json({ message: 'Resumes uploaded successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Failed to upload resumes' });

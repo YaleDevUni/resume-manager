@@ -23,7 +23,7 @@ const ResumeSchema = new mongoose.Schema(
     },
     position: {
       type: String,
-      required: true,
+      // required: true,
     },
     sharedWith: {
       type: [mongoose.Schema.Types.ObjectId],

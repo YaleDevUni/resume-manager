@@ -62,6 +62,7 @@ const PdfUploader = () => {
           if (item.isFile && depth > 0) {
             item.file(file => {
               if (file.type === 'application/pdf') {
+                console.log(file);
                 pdfFiles.push(file);
               }
               resolve();
@@ -106,34 +107,12 @@ const PdfUploader = () => {
       await Promise.all([traverseAllItems(), addFiles()]);
 
       if (pdfFiles.length > 0) {
-        // Process all PDF files using Promise.all to await array buffers
-        const pdfs = await Promise.all(
-          pdfFiles.map(async (pdf, index) => {
-            const filename = pdf.name;
-            const data = await pdf.arrayBuffer(); // Convert file to ArrayBuffer
-
-            // Callback to track upload progress
-            handleUploadProgress(filename, index + 1, pdfFiles.length);
-
-            return {
-              filename,
-              data,
-            };
-          })
-        );
-
-        setFiles(prevFiles => [...prevFiles, ...pdfs]);
-        setPdfCount(prevCount => prevCount + pdfs.length);
+        setFiles(prevFiles => [...prevFiles, ...pdfFiles]);
+        setPdfCount(prevCount => prevCount + pdfFiles.length);
       } else {
         addAlert('No PDF files found in the uploaded items.', 'error');
       }
     }
-  };
-
-  // Callback function to handle upload progress
-  const handleUploadProgress = (filename, index, total) => {
-    console.log(`Uploading ${index}/${total}: ${filename}`);
-    // You can add more UI feedback here, like updating a progress bar
   };
 
   const handleRemoveFile = index => {
@@ -154,14 +133,9 @@ const PdfUploader = () => {
       return;
     }
     console.log(files);
-    const pdfData = files.map(file => ({
-      filename: file.name,
-      // send buffer data using prototype
-      data: file,
-    }));
-    console.log('here', pdfData);
+
     try {
-      await uploadBulkResumes(pdfData, recruitment.id);
+      await uploadBulkResumes(files, recruitment.id);
       addAlert('Resumes uploaded successfully.', 'success');
       setFiles([]);
       setPdfCount(0);

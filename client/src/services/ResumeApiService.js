@@ -18,16 +18,7 @@ authApi.interceptors.response.use(
   }
 );
 
-// // upload bulk resumes
-// async function uploadBulkResumes(pdfs, recruitment_id) {
-//   try {
-//     const response = await authApi.post('', { pdfs, recruitment_id });
-//     return response.data;
-//   } catch (error) {
-//     console.error('Error uploading resumes:', error);
-//     return [];
-//   }
-// }
+
 async function uploadBulkResumes(pdfs, recruitment_id) {
   try {
     // Create a FormData object
@@ -35,7 +26,7 @@ async function uploadBulkResumes(pdfs, recruitment_id) {
 
     // Append each PDF file to the FormData object
     pdfs.forEach((pdf, index) => {
-      formData.append(`pdfs[${index}]`, new Blob([pdf.data]), pdf.filename);
+      formData.append(`pdfs`, pdf);
     });
 
     // Append the recruitment_id

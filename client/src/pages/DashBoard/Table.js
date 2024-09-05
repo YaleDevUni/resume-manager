@@ -1,4 +1,26 @@
+import { useDispatch, useSelector } from 'react-redux';
+import { useState, useEffect, useCallback } from 'react';
+import { useAlerts, AlertContainer } from '../../hooks/useAlerts';
+import { fetchResumes } from '../../features/resume/resumeSlice';
 const Table = () => {
+  // Custom hooks
+  const { alerts, addAlert } = useAlerts(); // Custom hook to handle alerts
+  // Redux hooks
+  const dispatch = useDispatch(); // Redux dispatch function
+  // Redux selectors
+  const resumeList = useSelector(state => state.resume.resumeList);
+  const resume = useSelector(state => state.resume.resume);
+
+  // fetch resumes
+  const fetchResumesList = useCallback(() => {
+    dispatch(fetchResumes({ page: 1, limit: 10 }));
+  }, [dispatch]);
+
+  useEffect(() => {
+    fetchResumesList();
+    console.log('fetching resumes', resumeList);
+  }, []);
+
   return (
     <div className="w-full ml-16 flex flex-col">
       <div className=" flex flex-row justify-between w-full p-4 gap-1">

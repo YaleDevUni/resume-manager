@@ -1,6 +1,7 @@
 import { TbAdjustmentsHorizontal } from 'react-icons/tb';
 import { FaUserCircle } from 'react-icons/fa';
 import { GrDocumentConfig } from 'react-icons/gr';
+import Table from './Table';
 const DashBoard = () => {
   return (
     <div className=" w-screen h-screen flex flex-row justify-between">

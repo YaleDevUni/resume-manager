@@ -42,7 +42,7 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use('/api', authRoutes);
 app.use('/api', recruitRoutes);
 app.use('/api', skillRoutes);
-app.use('/api', resumeRoutes);
+app.use('/api', authMiddleware, resumeRoutes);
 
 const PORT = process.env.PORT || 3003;
 

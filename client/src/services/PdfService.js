@@ -26,10 +26,22 @@ class PdfService {
 
       pagesText.push(pageText);
     }
+    // refine pagesText so that each word converted to lowercase and without . (dot) also , ( comma)
+    const refinedText = pagesText.map(pageText =>
+      pageText.toLowerCase().replace(/[.,]/g, '')
+    );
+
+    const words = refinedText.join(' ').split(' ');
+
+    const skillsToMatch = localStorage.getItem('skills').split(',');
+
+    // now match the skills with the words
+    const matchedSkills = skillsToMatch.filter(skill => words.includes(skill));
+    console.log('Matched Skills:', matchedSkills);
+    alert(matchedSkills);
 
     return pagesText;
   }
 }
 
 export default new PdfService();
-

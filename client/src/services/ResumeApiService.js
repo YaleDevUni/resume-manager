@@ -1,7 +1,7 @@
 // src/services/ApiService.js
 import axios from 'axios';
 import { API_BASE_URL } from '../config/config';
-const authApi = axios.create({
+const resumeApi = axios.create({
   baseURL: API_BASE_URL + '/resumes',
   withCredentials: true,
   // add bearer token to headers
@@ -10,14 +10,13 @@ const authApi = axios.create({
   },
 });
 
-authApi.interceptors.response.use(
+resumeApi.interceptors.response.use(
   response => response,
   error => {
     console.error('Error details:', error);
     return Promise.reject(error);
   }
 );
-
 
 async function uploadBulkResumes(pdfs, recruitment_id) {
   try {
@@ -33,7 +32,7 @@ async function uploadBulkResumes(pdfs, recruitment_id) {
     formData.append('recruitment_id', recruitment_id);
 
     // Make the POST request
-    const response = await authApi.post('', formData, {
+    const response = await resumeApi.post('', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -46,4 +45,4 @@ async function uploadBulkResumes(pdfs, recruitment_id) {
   }
 }
 export { uploadBulkResumes };
-export default authApi;
+export default resumeApi;

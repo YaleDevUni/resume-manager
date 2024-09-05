@@ -213,14 +213,16 @@ const RecruimentSetting = () => {
           handlePageChange={handlePageChange}
         />
         <hr className="my-4" />
-        <div className=" text-xl mb-4">
+        <div className=" text-xl mb-4 text-center">
           Current Recruitment ID:{' '}
           <span className=" font-bold">
             {' '}
             {recruitment.recruitmentID || 'Please Select Recruiment First'}
           </span>
         </div>
-
+        <div className=" text-xl mb-4">
+          Add Required Skills for the position
+        </div>
         <SkillSearchBar
           callBackAdd={selectedSkill => {
             if (!recruitment._id) {

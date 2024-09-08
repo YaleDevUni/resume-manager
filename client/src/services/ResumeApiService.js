@@ -18,7 +18,7 @@ resumeApi.interceptors.response.use(
   }
 );
 
-async function uploadBulkResumes(pdfs, recruitment_id) {
+async function uploadBulkResumes(pdfs, recruitment) {
   try {
     // Create a FormData object
     const formData = new FormData();
@@ -29,7 +29,7 @@ async function uploadBulkResumes(pdfs, recruitment_id) {
     });
 
     // Append the recruitment_id
-    formData.append('recruitment_id', recruitment_id);
+    formData.append('recruitment', recruitment);
 
     // Make the POST request
     const response = await resumeApi.post('', formData, {

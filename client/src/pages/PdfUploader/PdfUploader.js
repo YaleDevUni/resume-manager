@@ -153,7 +153,7 @@ const PdfUploader = () => {
       <div className="  w-1/2 m-2  p-2 border shadow-[0_0_6px_rgba(0,0,0,0.2)] rounded-lg  ">
         {recruitment._id ? (
           <div className=" text-3xl  mb-4">
-            Upload Resume to <i> {recruitment.recruitmentID}</i>
+            Upload Resume to <i> {recruitment.title}</i>
           </div>
         ) : (
           <div className=" text-3xl  mb-4">

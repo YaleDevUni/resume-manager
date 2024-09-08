@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const recruitmentSchema = new mongoose.Schema(
   {
-    recruitmentID: {
+    title: {
       type: String,
       required: true,
     },
@@ -56,7 +56,7 @@ recruitmentSchema.set('toJSON', {
   id: false,
 });
 
-recruitmentSchema.index({ recruitmentID: 1, user: 1 }, { unique: true });
+recruitmentSchema.index({ title: 1, user: 1 }, { unique: true });
 
 const Recruitment = mongoose.model('Recruitment', recruitmentSchema);
 

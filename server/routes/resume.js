@@ -12,5 +12,7 @@ router.post(
   upload.array('pdfs'),
   resumeController.createBulkResumes
 );
-
+router.get('/resumes', authMiddleware, resumeController.getAllResumes);
+router.get('/resumes/:id', authMiddleware, resumeController.getResumeById);
+router.put('/resumes/:id', authMiddleware, resumeController.updateResumeById);
 module.exports = router;

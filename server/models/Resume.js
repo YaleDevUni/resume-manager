@@ -19,7 +19,7 @@ const ResumeSchema = new mongoose.Schema(
       enum: ['Under Review', 'Accepted', 'Rejected', 'Interview Scheduled'],
       default: 'Under Review',
     },
-    recruitmentID: {
+    recruitment: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Recruitment',
       required: true,
@@ -35,11 +35,13 @@ const ResumeSchema = new mongoose.Schema(
     },
     note: {
       type: String,
+      default: '',
     },
     rating: {
       type: Number, // Assuming rating is a numeric value
       min: 0,
       max: 10, // Example range
+      default: 0,
     },
     skills: {
       type: [String], // Array of strings for keywords
@@ -63,6 +65,7 @@ const ResumeSchema = new mongoose.Schema(
     timestamps: true, // Automatically adds createdAt and updatedAt fields
   }
 );
+// auto-populate recruitment
 
 const Resume = mongoose.model('Resume', ResumeSchema);
 

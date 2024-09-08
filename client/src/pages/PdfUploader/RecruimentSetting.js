@@ -42,7 +42,7 @@ const RecruimentSetting = () => {
   const handleAddNew = async () => {
     if (recruitmentId.trim()) {
       const recruitmentData = {
-        recruitmentID: recruitmentId,
+        title: recruitmentId,
         skillsToMatch: [], // Starting with an empty array for skills
         user: user.userId, // Replace with the actual user ID or leave empty if it will be filled in the backend
       };
@@ -80,7 +80,7 @@ const RecruimentSetting = () => {
     try {
       if (
         !window.confirm(
-          `Are you sure you want to delete the recruitment ${recruitmentToDel.recruitmentID}?`
+          `Are you sure you want to delete the recruitment ${recruitmentToDel.title}?`
         )
       )
         return;
@@ -131,7 +131,7 @@ const RecruimentSetting = () => {
               type="text"
               id="recruitmentId"
               name="recruitmentId"
-              placeholder="Recruitment ID"
+              placeholder="Recruitment Title"
               value={recruitmentId}
               onChange={e => setRecruitmentId(e.target.value.trim())} // Update state on input change
               onKeyDown={handleKeyDown}
@@ -175,7 +175,7 @@ const RecruimentSetting = () => {
                     handleSelectRecruitment(recruit);
                   }}
                 >
-                  {recruit.recruitmentID}
+                  {recruit.title}
                 </td>
                 <td
                   onClick={() => {
@@ -217,7 +217,7 @@ const RecruimentSetting = () => {
           Current Recruitment ID:{' '}
           <span className=" font-bold">
             {' '}
-            {recruitment.recruitmentID || 'Please Select Recruiment First'}
+            {recruitment.title || 'Please Select Recruiment First'}
           </span>
         </div>
         <div className=" text-xl mb-4">

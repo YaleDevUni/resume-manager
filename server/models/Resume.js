@@ -60,13 +60,33 @@ const ResumeSchema = new mongoose.Schema(
       ref: 'PDF', // Reference to the PDF model
       required: true, // Assuming the PDF is mandatory
     },
+
+    education: {
+      degree: {
+        type: String,
+      },
+      major: {
+        type: String,
+      },
+      school: {
+        type: String,
+      },
+      graduationYear: {
+        type: String,
+      },
+    },
+    contact: {
+      email: {
+        type: String,
+      },
+    },
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt fields
   }
 );
-// auto-populate recruitment
 
+// auto-populate recruitment
 const Resume = mongoose.model('Resume', ResumeSchema);
 
 module.exports = Resume;

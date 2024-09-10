@@ -20,6 +20,10 @@ const pdfSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+    md5: {
+      type: String,
+      unique: true,
+    },
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt fields

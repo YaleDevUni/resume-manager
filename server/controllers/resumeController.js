@@ -1,33 +1,125 @@
 const Resume = require('../models/Resume');
 const PDF = require('../models/PDF');
 const User = require('../models/User');
+const PdfService = require('../service/pdfToText.js');
+const { GoogleGenerativeAI, SchemaType } = require('@google/generative-ai');
+const crypto = require('crypto');
+require('dotenv').config();
 
-// Upload a bulk of resumes with associated PDFs
+// Function to save PDF to the database or retrieve existing one
+async function saveOrRetrievePDF(pdf, user) {
+  const md5 = crypto.createHash('md5').update(pdf.buffer).digest('hex');
+  let pdfInMongo = await PDF.findOne({ md5 });
+
+  if (!pdfInMongo) {
+    const pdfDoc = new PDF({
+      md5,
+      filename: pdf.originalname,
+      data: pdf.buffer,
+      contentType: pdf.mimetype,
+      uploadedBy: user,
+    });
+    pdfInMongo = await pdfDoc.save();
+  }
+
+  return pdfInMongo;
+}
+
+// Function to generate AI response
+async function generateAIResponse(allPdfs) {
+  const genAI = new GoogleGenerativeAI(process.env.API_KEY);
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-1.5-flash',
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: SchemaType.ARRAY,
+        items: {
+          type: SchemaType.OBJECT,
+          properties: {
+            order: { type: SchemaType.NUMBER },
+            applicant: { type: SchemaType.STRING },
+            skills: {
+              type: SchemaType.ARRAY,
+              items: { type: SchemaType.STRING },
+            },
+            education: {
+              type: SchemaType.OBJECT,
+              properties: {
+                degree: { type: SchemaType.STRING },
+                major: { type: SchemaType.STRING },
+                school: { type: SchemaType.STRING },
+                graduationYear: { type: SchemaType.STRING },
+              },
+            },
+            contact: {
+              type: SchemaType.OBJECT,
+              properties: {
+                email: { type: SchemaType.STRING },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const prompt =
+    'Convert resumes to list of json. Each resume have resume(n) at top of the resume.\n' +
+    allPdfs;
+
+  const result = await model.generateContent(prompt);
+  return JSON.parse(result.response.text());
+}
+
+// Function to create resume documents
+async function createResumeDocuments(resumesData, pdfsOnDB, user, recruitment) {
+  const resumePromises = resumesData.map(async (resume, index) => {
+    const resumeDoc = new Resume({
+      name: resume.applicant || 'Unknown',
+      createdBy: user,
+      recruitment,
+      resumePDF: pdfsOnDB[index]._id,
+      education: resume.education || {},
+      contact: resume.contact || {},
+      skills: resume.skills
+        ? resume.skills.map(skill => skill.toLowerCase().replace(/[.,]/g, ''))
+        : [],
+    });
+    await resumeDoc.save();
+  });
+
+  await Promise.all(resumePromises);
+}
+
+// Controller to handle bulk resume upload
 exports.createBulkResumes = async (req, res) => {
   try {
-    const recruitment = req.body.recruitment;
+    const { recruitment } = req.body;
     const user = await User.findById(req.user.userId);
+    const pdfService = new PdfService();
     const pdfFiles = req.files.filter(
       file => file.mimetype === 'application/pdf'
     );
-    pdfFiles.forEach(async pdf => {
-      const pdfDoc = new PDF({
-        filename: pdf.originalname,
-        data: pdf.buffer,
-        contentType: pdf.mimetype,
-        uploadedBy: user,
-      });
-      const pdfInMongo = await pdfDoc.save();
-      const resume = new Resume({
-        name: pdf.originalname,
-        createdBy: user,
-        recruitment,
-        resumePDF: pdfInMongo._id,
-      });
-      await resume.save();
-    });
+
+    const allPdfs = [];
+    const pdfsOnDB = [];
+
+    for (let index = 0; index < pdfFiles.length; index++) {
+      const pdf = pdfFiles[index];
+      const pdfText = await pdfService.extractTextFromPdf(pdf);
+      pdfText.unshift(`resume${index + 1}\n`);
+      allPdfs.push(pdfText.join(' '));
+      const pdfInMongo = await saveOrRetrievePDF(pdf, user);
+      pdfsOnDB.push(pdfInMongo);
+    }
+
+    const resumesData = await generateAIResponse(allPdfs.join(' '));
+    await createResumeDocuments(resumesData, pdfsOnDB, user, recruitment);
+
     res.status(201).json({ message: 'Resumes uploaded successfully' });
   } catch (error) {
+    console.error('Error uploading resumes:', error);
     res.status(500).json({ message: 'Failed to upload resumes' });
   }
 };

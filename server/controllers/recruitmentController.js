@@ -36,8 +36,9 @@ exports.getAllRecruitments = async (req, res) => {
     const { page = 1, limit = 10 } = req.query;
 
     const recruitments = await Recruitment.find({ createdBy: user._id })
-      .select('_id title createdAt')
+      .select('_id title position createdAt')
       .populate('createdBy')
+      .populate('applicants')
       .limit(limit * 1) // Convert limit to number and limit the results
       .skip((page - 1) * limit) // Skip the number of documents for pagination
       .sort({ createdAt: -1 }) // Sort by date in descending order

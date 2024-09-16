@@ -132,7 +132,11 @@ exports.getAllResumes = async (req, res) => {
 
     const resumes = await Resume.find()
       .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .skip((page - 1) * limit)
+      .populate({
+        path: 'recruitment',
+        select: 'title position',
+      });
 
     res.status(200).json(resumes);
   } catch (error) {

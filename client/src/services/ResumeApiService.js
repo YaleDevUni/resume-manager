@@ -4,12 +4,20 @@ import { API_BASE_URL } from '../config/config';
 const resumeApi = axios.create({
   baseURL: API_BASE_URL + '/resumes',
   withCredentials: true,
-  // add bearer token to headers
-  headers: localStorage.getItem('token') && {
-    Authorization: `Bearer ${localStorage.getItem('token')}`,
-  },
 });
-
+// add bearer token to headers
+resumeApi.interceptors.request.use(
+  config => {
+    const accessToken = localStorage.getItem('token');
+    if (accessToken) {
+      config.headers['Authorization'] = 'Bearer ' + accessToken;
+    }
+    return config;
+  },
+  error => {
+    return Promise.reject(error);
+  }
+);
 resumeApi.interceptors.response.use(
   response => response,
   error => {

@@ -16,6 +16,9 @@ const recruitmentSchema = new mongoose.Schema(
         message: 'Skills must be unique',
       },
     },
+    position: {
+      type: String,
+    },
     // user: {
     //   type: mongoose.Schema.Types.ObjectId,
     //   ref: 'User', // Assuming you have a User model
@@ -33,16 +36,12 @@ const recruitmentSchema = new mongoose.Schema(
 );
 
 // virtual property to count the number of applicants
-recruitmentSchema
-  .virtual('applicants', {
-    ref: 'Application',
-    localField: '_id',
-    foreignField: 'recruitment',
-    count: true,
-  })
-  .get(function (value) {
-    return value || 0; // Ensure 0 is returned if no applicants are found
-  });
+recruitmentSchema.virtual('applicants', {
+  ref: 'Resume',
+  localField: '_id',
+  foreignField: 'recruitment',
+  count: true, // This tells Mongoose to return the count instead of the documents
+});
 
 // Apply virtuals to the schema
 recruitmentSchema.set('toObject', {

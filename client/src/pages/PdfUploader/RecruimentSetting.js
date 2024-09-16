@@ -1,11 +1,14 @@
 import Button from '../../components/Button';
 import Pagination from '../../components/Pagination';
-import SkillSearchBar from '../../components/SkillSearch';
+import SearchBar from '../../components/SearchBar';
 import { useDispatch, useSelector } from 'react-redux';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAlerts, AlertContainer } from '../../hooks/useAlerts';
 import useLocalStorage from '../../hooks/useLocalStorage';
 import { MdDeleteForever } from 'react-icons/md';
+import { LuPenSquare } from 'react-icons/lu';
+import { GiConfirmed } from 'react-icons/gi';
+import { GrPowerReset } from 'react-icons/gr';
 import {
   createRecruitmentAsync,
   fetchAllRecruitments,
@@ -20,6 +23,12 @@ const RecruimentSetting = () => {
   const [recruitmentId, setRecruitmentId] = useState(''); // State to hold the recruitment ID input
   const [recruitmentAdded, setRecruitmentAdded] = useState(false); // State to track if a recruitment has been added
   const [recruitmentDeleted, setRecruitmentDeleted] = useState(false); // State to track if a recruitment has been deleted
+  const [modifyRecruitment, setModifyRecruitment] = useState({
+    title: null,
+    position: null,
+  }); // State to toggle the modify recruitment form
+  // Refs
+  const prevRecruitment = useRef(null); // Ref to hold the previous recruitment data
   // Custom hooks
   const { alerts, addAlert } = useAlerts(); // Custom hook to handle alerts
 
@@ -39,6 +48,7 @@ const RecruimentSetting = () => {
   } = useLocalStorage('recruitmentsCurrentPage', 1, user.userId);
 
   /** Handlers */
+
   const handleAddNew = async () => {
     if (recruitmentId.trim()) {
       const recruitmentData = {
@@ -53,6 +63,11 @@ const RecruimentSetting = () => {
         setRecruitmentId(''); // Clear the input after dispatching
         setRecruitmentAdded(true); // Set the recruitment added state to true
         handleSelectRecruitment(newRecruiment); // Select the newly added recruitment
+        // setModifyRecruitment({
+        //   title: newRecruiment.title,
+        //   position: newRecruiment.position,
+        // });
+
         addAlert('Recruitment added successfully', 'success');
       } catch (error) {
         addAlert(error || 'An unexpected error occurred', 'error');
@@ -69,6 +84,10 @@ const RecruimentSetting = () => {
           updatedData: updatedData,
         })
       ).unwrap();
+      prevRecruitment.current = {
+        title: modifyRecruitment.title,
+        position: modifyRecruitment.position,
+      };
       addAlert('Recruitment updated successfully', 'success');
       // dispatch(setRecruitmentSync(newData)); // Update the selected recruitment with the new data
     } catch (error) {
@@ -96,9 +115,14 @@ const RecruimentSetting = () => {
     }
   };
   const handleSelectRecruitment = recruitment => {
-    console.log('recruitment', recruitment);
     // fetch recruitment by id
-    dispatch(fetchRecruitmentById(recruitment.id));
+    dispatch(fetchRecruitmentById(recruitment.id)).then(() => {
+      setModifyRecruitment({
+        title: recruitment.title,
+        position: recruitment.position || '',
+      });
+      prevRecruitment.current = recruitment;
+    });
   };
   const handleKeyDown = e => {
     if (e.key === 'Enter') {
@@ -118,6 +142,10 @@ const RecruimentSetting = () => {
     setRecruitmentAdded(false); // Reset the recruitment added state
     setRecruitmentDeleted(false); // Reset the recruitment deleted state
   }, [recruitmentAdded, recruitmentDeleted]);
+
+  // useEffect(() => {
+  //   setModifyRecruitment({ title: null, position: null }); // Reset the modify recruitment form
+  // }, [recruitmentDeleted]);
 
   return (
     <>
@@ -153,6 +181,7 @@ const RecruimentSetting = () => {
           <thead>
             <tr className=" bg-black text-white">
               <th className=" text-start">Recruitment ID</th>
+              <th className=" text-start">Position</th>
               <th className=" text-start">Created At</th>
               <th className=" text-start"># Applicant</th>
               <th className=" text-start"></th>
@@ -161,6 +190,7 @@ const RecruimentSetting = () => {
           <tbody>
             {recruitments.data.map((recruit, index) => (
               <tr
+                onClick={() => handleSelectRecruitment(recruit)}
                 key={recruit._id}
                 className={` ${
                   index % 2 === 0 ? 'bg-gray-100' : 'bg-gray-200'
@@ -170,32 +200,19 @@ const RecruimentSetting = () => {
                     : 'hover:bg-gray-300 '
                 } `}
               >
-                <td
-                  onClick={() => {
-                    handleSelectRecruitment(recruit);
-                  }}
-                >
-                  {recruit.title}
-                </td>
-                <td
-                  onClick={() => {
-                    handleSelectRecruitment(recruit);
-                  }}
-                >
+                <td>{recruit.title}</td>
+                <td>{recruit.position}</td>
+                <td>
                   {new Date(recruit.createdAt).toISOString().split('T')[0]}
                 </td>
-                <td
-                  onClick={() => {
-                    handleSelectRecruitment(recruit);
-                  }}
-                >
-                  {JSON.stringify(recruit.applicants)}
-                </td>
+                <td>{JSON.stringify(recruit.applicants)}</td>
 
                 <td
                   className=" hover:bg-red-500 hover:fill-white
                  justify-center flex flex-row border-l-2 border-dashed border-gray-400"
-                  onClick={() => {
+                  onClick={e => {
+                    // prevent event bubbling
+                    e.stopPropagation();
                     handleDelete(recruit);
                   }}
                 >
@@ -213,17 +230,69 @@ const RecruimentSetting = () => {
           handlePageChange={handlePageChange}
         />
         <hr className="my-4" />
-        <div className=" text-xl mb-4 text-center">
-          Current Recruitment ID:{' '}
-          <span className=" font-bold">
-            {' '}
-            {recruitment.title || 'Please Select Recruiment First'}
-          </span>
+        <div className=" flex flex-row items-center flex-wrap justify-center text-xl mb-4  gap-3">
+          <div>Title: </div>
+          <div className=" font-bold">
+            <input
+              type="text"
+              className="p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)]"
+              value={modifyRecruitment.title}
+              onChange={e =>
+                setModifyRecruitment({
+                  title: e.target.value,
+                  position: modifyRecruitment.position,
+                })
+              }
+              placeholder="Set Recruitment ID"
+            />
+          </div>
+          <div>Position: </div>
+          <input
+            type="text"
+            className="p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] font-bold"
+            value={modifyRecruitment.position}
+            onChange={e =>
+              setModifyRecruitment({
+                position: e.target.value,
+                title: modifyRecruitment.title,
+              })
+            }
+            placeholder="Set Position"
+          />
+          <Button
+            onClick={() => {
+              setModifyRecruitment({
+                title: prevRecruitment.current.title,
+                position: prevRecruitment.current.position,
+              });
+            }}
+            className={'hover:bg-red-300'}
+          >
+            <GrPowerReset className=" h-6 w-6" />
+          </Button>
+          <Button
+            className={'hover:bg-green-300'}
+            onClick={async () => {
+              await handleUpdate({
+                title: modifyRecruitment.title,
+                position: modifyRecruitment.position,
+              });
+
+              dispatch(
+                fetchAllRecruitments({
+                  limit: recruitment.limit,
+                  page: currentPage,
+                })
+              );
+            }}
+          >
+            <GiConfirmed className=" h-6 w-6" />
+          </Button>
         </div>
         <div className=" text-xl mb-4">
           Add Required Skills for the position
         </div>
-        <SkillSearchBar
+        <SearchBar
           callBackAdd={selectedSkill => {
             if (!recruitment._id) {
               addAlert('Please select a recruitment', 'error');

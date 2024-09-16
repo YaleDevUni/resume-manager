@@ -1,10 +1,12 @@
 import { useDispatch, useSelector } from 'react-redux';
 import { useState, useEffect, useCallback } from 'react';
 import { useAlerts, AlertContainer } from '../../hooks/useAlerts';
+import SearchBarWithTag from './SearchBarWithTag';
 import {
   fetchResumes,
   fetchResumeById,
   setResumeList,
+  updateResumeById,
 } from '../../features/resume/resumeSlice';
 // Icons
 import { MdOutlineStarBorder } from 'react-icons/md';
@@ -21,14 +23,38 @@ const Table = () => {
   const resume = useSelector(state => state.resume.resume);
 
   // fetch resumes
-  const fetchResumesList = useCallback(() => {
-    dispatch(fetchResumes({ page: 1, limit: 40 }));
+  const fetchResumesList = useCallback(async () => {
+    try {
+      await dispatch(fetchResumes({ page: 1, limit: 40 })).unwrap();
+    } catch (error) {
+      addAlert(error, 'error', 10000);
+    }
   }, [dispatch]);
-
+  const handlePreferredClick = async selectedResume => {
+    try {
+      await dispatch(
+        updateResumeById({
+          id: selectedResume._id,
+          updatedData: { isPreferred: !selectedResume.isPreferred },
+        })
+      ).unwrap();
+      dispatch(
+        setResumeList(
+          resumeList.data?.map(r =>
+            r._id === selectedResume._id
+              ? { ...r, isPreferred: !selectedResume.isPreferred }
+              : r
+          )
+        )
+      );
+      addAlert("Resume's preferred status updated", 'success');
+    } catch (error) {
+      addAlert(error, 'error');
+    }
+  };
   const handleResumeClick = async selectedResume => {
     try {
       await dispatch(fetchResumeById(selectedResume._id)).unwrap();
-      // Also update the resume status to viewed
       dispatch(
         setResumeList(
           resumeList.data?.map(r =>
@@ -45,71 +71,28 @@ const Table = () => {
     fetchResumesList();
   }, [fetchResumesList]);
 
+  // Utilities
+  const capitalizeWords = str => {
+    if (!str) return '';
+    return str
+      .split(' ') // Split the string into an array of words
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize the first letter of each word
+      .join(' '); // Join the words back into a single string
+  };
+
   return (
     <>
       <AlertContainer alerts={alerts} />
       <div className="w-full ml-16 flex flex-col">
-        <div className=" flex flex-row justify-between w-full p-4 gap-1">
-          <input
-            type="text"
-            placeholder="Search"
-            className=" w-full p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)]"
-          />
-          <select className=" w-32 p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)]">
-            <option value="name">Name</option>
-            <option value="email">Email</option>
-            <option value="phone">Phone</option>
-            <option value="location">Location</option>
-          </select>
-          <button className=" w-32 p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)]">
-            Reset
-          </button>
-          <button className=" w-32 p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)]">
-            Search
-          </button>
-        </div>
-        <div className=" flex flex-row flex-wrap items-center w-full gap-1 px-4">
-          <div className=" font-extrabold"> Recruitment ID:</div>
-          <button className=" text-white  p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] bg-red-500">
-            SoftEng20241212
-          </button>
-          <div className="h-8 border-x-2 border-gray-300 mx-2" />
-          <div className=" font-extrabold"> Skills:</div>
-          <button className=" text-white  p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] bg-green-500">
-            Python
-          </button>
-          <button className=" text-white  p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] bg-green-500">
-            Node
-          </button>
-          <button className=" text-white  p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] bg-green-500">
-            Angular
-          </button>
-          <button className=" text-white  p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] bg-green-500">
-            Python
-          </button>
-          <button className=" text-white  p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] bg-green-500">
-            Node
-          </button>
-          <button className=" text-white  p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] bg-green-500">
-            Angular
-          </button>
-          <button className=" text-white  p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] bg-green-500">
-            Python
-          </button>
-          <button className=" text-white  p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] bg-green-500">
-            Node
-          </button>
-          <button className=" text-white  p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] bg-green-500">
-            Angular
-          </button>
-        </div>
+        <SearchBarWithTag />
         <div className="p-4 w-full flex-grow overflow-auto">
           <div className="border shadow-[0_0_6px_rgba(0,0,0,0.2)] h-full rounded-lg">
             <div className="overflow-auto h-full rounded-lg">
               <table className="w-full text-start rounded-lg">
                 <thead className=" h-14 bg-black text-white">
                   <tr className="sticky top-0 bg-black">
-                    <th className="text-start">Recruitment ID</th>
+                    <th className="text-start">Recruitment Title</th>
+                    <th className="text-start">Position</th>
                     <th className="text-start">Applicant</th>
                     <th className="text-start">Rating</th>
                     <th className="text-start">Status</th>
@@ -121,46 +104,37 @@ const Table = () => {
                   </tr>
                 </thead>
                 <tbody className="table-fixed ">
-                  {
-                    // 10 iteration
-                    // Array.from({ length: 10 }, (_, i) => (
-                    //   <tr
-                    //     className={` h-20 ${
-                    //       i % 2 === 0 ? 'bg-white' : 'bg-gray-100'
-                    //     }`}
-                    //   >
-                    //     <td className="">Seng244</td>
-                    //     <td>Software Eng</td>
-                    //     <td>Yeil Park</td>
-                    //     <td>4/10</td>
-                    //     <td>Under Review</td>
-                    //     <td>Yes</td>
-                    //     {/* star */}
-                    //     <td className="text-center">
-                    //       <button className=" w-12 p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)]">
-                    //         &#9733;
-                    //       </button>
-                    //     </td>
-                    //   </tr>
-                    // ))
-                    resumeList.data?.map((resume, index) => (
+                  {Array.isArray(resumeList.data) &&
+                    resumeList?.data?.map((resumeInTable, index) => (
                       <tr
-                        key={resume._id}
+                        key={resumeInTable._id}
                         className={` ${
                           index % 2 === 0 ? 'bg-gray-100' : 'bg-gray-200'
-                        }  cursor-pointer hover:bg-gray-300`} // hover:bg-gray-300`}
+                        } cursor-pointer hover:bg-gray-300 ${
+                          resume.data?._id === resumeInTable._id &&
+                          'bg-green-200 hover:bg-green-200'
+                        }`} // hover:bg-gray-300`}
                         onClick={() => {
-                          handleResumeClick(resume);
+                          handleResumeClick(resumeInTable);
                         }}
                       >
-                        <td>{resume.recruitment.title}</td>
-
-                        <td>{resume.name}</td>
-                        <td>{resume.rating}</td>
-                        <td>{resume.status}</td>
-                        <td>{resume.resumeViewed ? 'yes' : 'No'}</td>
                         <td>
-                          {resume.isPreferred ? (
+                          {resumeInTable.recruitment.title}
+                          {/* {resume.data?._id} */}
+                        </td>
+                        <td>{resumeInTable.recruitment.position}</td>
+                        <td>{capitalizeWords(resumeInTable.name)}</td>
+                        <td>{resumeInTable.rating}</td>
+                        <td>{resumeInTable.status}</td>
+                        <td>{resumeInTable.resumeViewed ? 'yes' : 'No'}</td>
+                        <td
+                          onClick={e => {
+                            e.stopPropagation();
+                            handlePreferredClick(resumeInTable);
+                            // handlePreferred(recruit);
+                          }}
+                        >
+                          {resumeInTable.isPreferred ? (
                             <MdOutlineStarPurple500 className=" w-6 h-6 fill-yellow-300" />
                           ) : (
                             <MdOutlineStarBorder className=" w-6 h-6 " />
@@ -181,8 +155,7 @@ const Table = () => {
                           </button>
                         </td>
                       </tr>
-                    ))
-                  }
+                    ))}
                 </tbody>
                 {/* </table> */}
               </table>

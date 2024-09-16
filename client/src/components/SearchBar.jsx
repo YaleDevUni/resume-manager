@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { getSkills } from '../services/SkillService';
-const SkillSearchBar = ({ callBackAdd = () => {} }) => {
+const SearchBar = ({className, callBackAdd = () => {} }) => {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
-  const [skills, setSkills] = useState([]);
+  const [list, setList] = useState([]);
   const [highlightIndex, setHighlightIndex] = useState(-1); // Track highlighted suggestion
 
   useEffect(() => {
     const fetchSkills = async () => {
       try {
         const skillsList = await getSkills();
-        setSkills(skillsList);
+        setList(skillsList);
       } catch (error) {
-        console.error('Error fetching skills in useEffect:', error);
-        setSkills([]); // Optionally handle the error by setting an empty skills list
+        console.error('Error fetching list in useEffect:', error);
+        setList([]); // Optionally handle the error by setting an empty list list
       }
     };
 
@@ -27,7 +27,7 @@ const SkillSearchBar = ({ callBackAdd = () => {} }) => {
     setHighlightIndex(-1); // Reset highlight when query changes
 
     if (value.length > 0) {
-      const filteredSuggestions = skills.filter(skill =>
+      const filteredSuggestions = list.filter(skill =>
         skill.toLowerCase().startsWith(value.toLowerCase())
       );
       setSuggestions(filteredSuggestions);
@@ -95,13 +95,13 @@ const SkillSearchBar = ({ callBackAdd = () => {} }) => {
   };
 
   return (
-    <div className="search-bar relative">
+    <div className={`search-bar relative ${className}`}>
       <input
         type="text"
         value={query}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        placeholder="Search skills..."
+        placeholder="Search list..."
         onBlur={handleBlur}
         className="border p-2 w-full rounded-md bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
@@ -124,4 +124,4 @@ const SkillSearchBar = ({ callBackAdd = () => {} }) => {
   );
 };
 
-export default SkillSearchBar;
+export default SearchBar;

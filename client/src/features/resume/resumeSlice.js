@@ -5,36 +5,42 @@ import { getAllResumes, getResumeById, updateResumeData } from './resumeApi';
 // Async actions
 export const fetchResumes = createAsyncThunk(
   'resume/fetchResumes',
-  async ({ page, limit }) => {
+  async ({ page, limit }, { rejectWithValue }) => {
     try {
       const response = await getAllResumes(page, limit);
       return response.data;
     } catch (error) {
-      return error.response.data;
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch resumes'
+      );
     }
   }
 );
 
 export const fetchResumeById = createAsyncThunk(
   'resume/fetchResumeById',
-  async resumeId => {
+  async (resumeId, { rejectWithValue }) => {
     try {
       const response = await getResumeById(resumeId);
       return response.data;
     } catch (error) {
-      return error.response.data;
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch resume'
+      );
     }
   }
 );
 export const updateResumeById = createAsyncThunk(
   'resume/updateResumeById',
-  async ({ id, updatedData }) => {
+  async ({ id, updatedData }, { rejectWithValue }) => {
     console.log('id-midpoint', id);
     try {
       const response = await updateResumeData(id, updatedData);
       return response.data;
     } catch (error) {
-      return error.response.data;
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to update resume'
+      );
     }
   }
 );
@@ -74,9 +80,7 @@ const resumeSlice = createSlice({
     });
     builder.addCase(fetchResumes.fulfilled, (state, action) => {
       state.resumes.status = 'succeeded';
-      // console.log('action.payload', action.payload);
       state.resumes.data = action.payload;
-      // console.log('state.resumes.data', state.resumes.data);
     });
     builder.addCase(fetchResumes.rejected, (state, action) => {
       state.resumes.status = 'failed';

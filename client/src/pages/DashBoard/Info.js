@@ -2,7 +2,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useState, useEffect, useCallback } from 'react';
 import { useAlerts, AlertContainer } from '../../hooks/useAlerts';
 // TODO: import updateResumeById from resumeSlice
-import { updateResumeById } from '../../features/resume/resumeSlice';
+import {
+  updateResumeById,
+  setResumeList,
+} from '../../features/resume/resumeSlice';
 const Info = () => {
   // Local state
   const [note, setNote] = useState('');
@@ -12,6 +15,7 @@ const Info = () => {
   const dispatch = useDispatch(); // Redux dispatch function
   // Redux selectors
   const resume = useSelector(state => state.resume.resume);
+  const resumeList = useSelector(state => state.resume.resumes);
   // Custom hooks
   const { alerts, addAlert } = useAlerts(); // Custom hook to handle alerts
   // Callbacks
@@ -34,8 +38,19 @@ const Info = () => {
     setNote(value); // Update note state immediately
     debouncedSetNote(value, resume.data._id); // Debounce the side effect
   };
-
-  const handleResumeUpdate = async (resumeId, data) => {
+  /**
+   * If isEffectOnTable is true, the rating will be updated on the table
+   * Also, data should contain all the fields(attributes of the table)
+   * @param {*} resumeId
+   * @param {*} data
+   * @param {*} isEffectOnTable
+   * @returns
+   */
+  const handleResumeUpdate = async (
+    resumeId,
+    data,
+    isEffectOnTable = false
+  ) => {
     if (!resumeId) {
       addAlert('No resume ID found', 'error');
       return;
@@ -44,6 +59,17 @@ const Info = () => {
       await dispatch(
         updateResumeById({ id: resumeId, updatedData: data })
       ).unwrap();
+
+      if (isEffectOnTable) {
+        dispatch(
+          setResumeList(
+            resumeList.data?.map(r =>
+              r._id === resume.data._id ? { ...r, ...data } : r
+            )
+          )
+        );
+      }
+
       addAlert('Resume updated successfully', 'success');
     } catch (error) {
       addAlert(error, 'error');
@@ -75,6 +101,15 @@ const Info = () => {
       }, delay);
     };
   }
+
+  const capitalizeWords = str => {
+    if (!str) return '';
+    return str
+      .split(' ') // Split the string into an array of words
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize the first letter of each word
+      .join(' '); // Join the words back into a single string
+  };
+
   return (
     <>
       <AlertContainer alerts={alerts} />
@@ -93,8 +128,11 @@ const Info = () => {
         </div>
 
         <hr />
-        <div className=" text-xl m-4 mb-0 ">File Name</div>
-        <div className=" text-lg m-4 mt-0"> {resume.data.name}</div>
+        <div className=" text-xl m-4 mb-0 ">Applicant </div>
+        <div className=" text-lg m-4 mt-0">
+          {' '}
+          {capitalizeWords(resume.data.name)}
+        </div>
         <hr />
         <div className=" text-xl m-4 mb-0">Status</div>
         <div className=" text-lg m-4 mt-0"> {resume.data.status}</div>
@@ -105,8 +143,24 @@ const Info = () => {
           {resume.data.recruitment?.title}
         </div>
         <hr />
-        <div className=" text-xl m-4 mb-0">Position</div>
-        <div className=" text-lg m-4 mt-0"> {resume.data.position}</div>
+        <div className=" text-xl m-4 mb-0">Education</div>
+        <div className=" text-lg mx-4 mt-0">
+          {resume.data.education?.school &&
+            `${capitalizeWords(resume.data.education.school)}`}
+        </div>
+        <div className=" text-lg mx-4 mt-0">
+          {resume.data.education?.degree &&
+            `Degree: ${capitalizeWords(resume.data.education.degree)}`}
+        </div>
+        <div className=" text-lg mx-4 mt-0">
+          {resume.data.education?.major &&
+            `Major: ${capitalizeWords(resume.data.education.major)}`}
+        </div>
+        <div className=" text-lg m-4 mt-0">
+          {resume.data.education?.graduationYear &&
+            `Graduation Year: ${resume.data.education.graduationYear}`}
+        </div>
+
         <hr />
         {/* <div className=" text-xl m-4 mb-0">Shared</div>
         <div className=" text-lg m-4 mt-0"> Yeil Park, John Doe</div>
@@ -128,16 +182,19 @@ const Info = () => {
             Array.from({ length: 10 }, (_, i) => (
               <div
                 onMouseEnter={() => {
-                  setRating(i);
+                  setRating(i + 1);
                 }}
                 onMouseLeave={() => {
                   setRating(resume.data.rating);
                 }}
                 onClick={() => {
-                  console.log(resume);
-                  handleResumeUpdate(resume.data._id, {
-                    rating: i,
-                  });
+                  handleResumeUpdate(
+                    resume.data._id,
+                    {
+                      rating: i + 1,
+                    },
+                    true
+                  );
                 }}
                 key={i}
                 className={` cursor-pointer w-6 h-6 border rounded border-gray-500 ${
@@ -153,7 +210,13 @@ const Info = () => {
           {resume.data.skills?.map((skill, index) => (
             <div
               key={index}
-              className=" p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)]"
+              className={`p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)]
+                ${
+                  resume.data.recruitment?.skillsToMatch?.includes(skill)
+                    ? 'bg-green-500 text-white'
+                    : 'bg-white text-black'
+                }
+                `}
             >
               {skill}
             </div>

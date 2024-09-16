@@ -1,11 +1,12 @@
 import Button from '../../components/Button';
 import Pagination from '../../components/Pagination';
-import SkillSearchBar from '../../components/SkillSearch';
+import SearchBar from '../../components/SearchBar';
 import { uploadBulkResumes } from '../../services/ResumeApiService';
 import { useDispatch, useSelector } from 'react-redux';
 import { useState, useEffect, useCallback } from 'react';
 import { useAlerts, AlertContainer } from '../../hooks/useAlerts';
 import PdfService from '../../services/PdfService';
+import { FaSpinner } from 'react-icons/fa';
 import useLocalStorage from '../../hooks/useLocalStorage';
 import { MdDeleteForever } from 'react-icons/md';
 import {
@@ -27,6 +28,7 @@ const PdfUploader = () => {
   const [dragActive, setDragActive] = useState(false);
   const [files, setFiles] = useState([]);
   const [pdfCount, setPdfCount] = useState(0); // Counter state
+  const [uploading, setUploading] = useState(false);
 
   // Handlers
   const handleDragOver = e => {
@@ -138,6 +140,7 @@ const PdfUploader = () => {
     }
 
     try {
+      setUploading(true);
       await uploadBulkResumes(files, recruitment.id);
       addAlert('Resumes uploaded successfully.', 'success');
       setFiles([]);
@@ -145,6 +148,7 @@ const PdfUploader = () => {
     } catch (error) {
       addAlert(error || 'An unexpected error occurred', 'error');
     }
+    setUploading(false);
   };
 
   return (
@@ -220,12 +224,23 @@ const PdfUploader = () => {
               setPdfCount(0);
             }}
             className=" font-bold"
+            disabled={uploading}
           >
             Cancel
           </Button>
-          <Button onClick={handleUpload} className=" font-bold">
-            Upload {pdfCount} PDF Files
-          </Button>
+          {uploading ? (
+            <Button
+              className="flex flex-row justify-between items-center w-44 font-bold "
+              disabled={true}
+            >
+              <div> Uploading...</div>
+              <FaSpinner className="animate-spin" />
+            </Button>
+          ) : (
+            <Button onClick={handleUpload} className=" w-44 font-bold">
+              Upload {pdfCount} PDF Files
+            </Button>
+          )}
         </div>
       </div>
     </>

@@ -20,7 +20,6 @@ const Login = () => {
   const handleSubmit = async e => {
     e.preventDefault();
     try {
-    
       const { token, userInfo } = await dispatch(
         login({ username, password })
       ).unwrap();
@@ -32,6 +31,12 @@ const Login = () => {
       addAlert(err, 'error');
     }
   };
+  const handleEnter = e => {
+    if (e.key === 'Enter') {
+      handleSubmit(e);
+    }
+  };
+
   useEffect(() => {
     if (location.state?.username) {
       setUsername(location.state.username);
@@ -61,6 +66,7 @@ const Login = () => {
             className="border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] w-full p-3 mb-6 "
             value={password}
             onChange={e => setPassword(e.target.value.trim())}
+            onKeyPress={handleEnter}
           ></input>
         </form>
         <div className=" w-11/12 flex flex-row justify-end mb-6">

@@ -16,6 +16,13 @@ router.get(
   authMiddleware,
   recruitmentController.getAllRecruitments
 );
+// READ - Get all recruitments with pagination
+// This has to be placed before the '/recruitments/:id' route to avoid conflicts
+router.get(
+  '/recruitments/search',
+  authMiddleware,
+  recruitmentController.searchRecruitment
+);
 
 // READ - Get a recruitment by ID
 router.get(

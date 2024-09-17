@@ -13,6 +13,11 @@ router.post(
   resumeController.createBulkResumes
 );
 router.get('/resumes', authMiddleware, resumeController.getAllResumes);
+router.get(
+  '/resumes/searchApplicant',
+  authMiddleware,
+  resumeController.getAllResumesNamesForSearch
+);
 router.get('/resumes/:id', authMiddleware, resumeController.getResumeById);
 router.put('/resumes/:id', authMiddleware, resumeController.updateResumeById);
 module.exports = router;

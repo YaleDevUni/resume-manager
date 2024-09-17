@@ -21,4 +21,18 @@ recruitmentApi.interceptors.response.use(
   }
 );
 
+async function searchRecruitments(searchTerm) {
+  console.log('searchRecruitments called with:', searchTerm);
+  try {
+    const response = await recruitmentApi.get('search', {
+      params: { q: searchTerm }, // Changed 'search' to 'q' to match the req.query.q usage
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching recruitments:', error);
+    return [];
+  }
+}
+
 export default recruitmentApi;
+export { searchRecruitments };

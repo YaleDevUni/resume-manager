@@ -61,6 +61,7 @@ exports.getAllRecruitments = async (req, res) => {
 
 // READ - Get a recruitment by ID
 exports.getRecruitmentById = async (req, res) => {
+  console.log('/n Enter here??????/n/n');
   try {
     const recruitment = await Recruitment.findById(req.params.id).populate(
       'createdBy'
@@ -111,5 +112,23 @@ exports.deleteRecruitmentById = async (req, res) => {
     res.json({ message: 'Recruitment deleted' });
   } catch (error) {
     res.status(500).json({ message: 'Failed to delete recruitment' });
+  }
+};
+
+// For searching bar in the dashboard. Only return the title.
+exports.searchRecruitment = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    console.log(req.query.q);
+    const recruitments = await Recruitment.find({
+      createdBy: user._id,
+      title: { $regex: req.query.q, $options: 'i' },
+    })
+      .limit(10)
+      .select('title')
+      .exec();
+    res.json(recruitments);
+  } catch (error) {
+    handleError(error, res);
   }
 };

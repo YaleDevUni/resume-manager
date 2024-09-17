@@ -26,9 +26,9 @@ skillsApi.interceptors.response.use(
   }
 );
 
+// This is for searching bar must be minimized 
 async function getSkills() {
   const storedSkills = localStorage.getItem('skills');
-
   if (storedSkills) {
     // Returning a resolved Promise with the split array
     return Promise.resolve(storedSkills.split(','));

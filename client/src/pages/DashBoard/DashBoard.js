@@ -1,6 +1,7 @@
 import { TbAdjustmentsHorizontal } from 'react-icons/tb';
 import { FaUserCircle } from 'react-icons/fa';
 import { GrDocumentConfig } from 'react-icons/gr';
+import { Link } from 'react-router-dom';
 import Table from './Table';
 import Info from './Info';
 const DashBoard = () => {
@@ -11,7 +12,9 @@ const DashBoard = () => {
         <div className=" absolute -right-16 h-72 flex flex-col rounded-br-3xl justify-evenly w-16 shadow-[8px_15px_15px_-5px_rgba(0,0,0,0.1)] bg-white ">
           <FaUserCircle className="  w-12 h-12 m-2" />
           <TbAdjustmentsHorizontal className=" w-12 h-12 m-2" />
-          <GrDocumentConfig className=" w-12 h-12 m-2" />
+          <Link to="/dashboard/pdf-uploader">
+            <GrDocumentConfig className=" w-12 h-12 m-2" />
+          </Link>
         </div>
         <div className=" w-full p-2 flex flex-col ">
           <div className=" text-4xl mb-4">Advanced Filter</div>

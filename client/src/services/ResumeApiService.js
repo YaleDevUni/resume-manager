@@ -52,5 +52,17 @@ async function uploadBulkResumes(pdfs, recruitment) {
     return [];
   }
 }
-export { uploadBulkResumes };
+
+async function searchApplicants(searchTerm) {
+  try {
+    const response = await resumeApi.get('/searchApplicant', {
+      params: { q: searchTerm },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching applicants:', error);
+    return [];
+  }
+}
+export { uploadBulkResumes, searchApplicants };
 export default resumeApi;

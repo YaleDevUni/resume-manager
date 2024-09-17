@@ -75,8 +75,14 @@ async function generateAIResponse(allPdfs) {
 // Function to create resume documents
 async function createResumeDocuments(resumesData, pdfsOnDB, user, recruitment) {
   const resumePromises = resumesData.map(async (resume, index) => {
+    // convert double spaces to single space and trim and remove special characters and convert to lowercase for name
+    const sanitizedApplicantName = resume.applicant
+      ?.replace(/\s+/g, ' ')
+      ?.trim()
+      ?.replace(/[^a-zA-Z0-9 ]/g, '')
+      ?.toLowerCase();
     const resumeDoc = new Resume({
-      name: resume.applicant || 'Unknown',
+      name: sanitizedApplicantName || 'Unknown',
       createdBy: user,
       recruitment,
       resumePDF: pdfsOnDB[index]._id,
@@ -198,4 +204,32 @@ exports.deleteResumeById = async (req, res) => {
   }
 };
 
-// Bulk update resumes by recruitment ID
+// Get all resumes.names from resumes with regex search case insensitive
+exports.getAllResumesNamesForSearch = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    const resumes = await Resume.aggregate([
+      {
+        $match: {
+          createdBy: user._id,
+          name: { $regex: new RegExp(req.query.q, 'i') },
+        },
+      },
+      {
+        $group: {
+          _id: '$name',
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          name: '$_id',
+        },
+      },
+    ]);
+    console.log(resumes);
+    res.status(200).json(resumes);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch resumes' });
+  }
+};

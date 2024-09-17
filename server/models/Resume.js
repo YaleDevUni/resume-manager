@@ -5,6 +5,7 @@ const ResumeSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
+      index: true,
     },
     originalFileName: {
       type: String,

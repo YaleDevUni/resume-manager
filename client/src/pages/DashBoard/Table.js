@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from 'react-redux';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAlerts, AlertContainer } from '../../hooks/useAlerts';
 import SearchBarWithTag from './SearchBarWithTag';
 import {
@@ -26,7 +26,15 @@ const Table = () => {
 
   // Search params
   const [searchParams, setSearchParams] = useSearchParams();
-
+  // Custom Dependency that replace resumeId
+  const filterResumeQuery = useMemo(() => {
+    let stringQuery = searchParams.toString();
+    if (stringQuery) {
+      stringQuery = stringQuery.replace(/resumeId=[^&]+&?/g, '');
+    }
+    return stringQuery;
+  }, [searchParams.toString()]);
+  
   // Callbacks
   const fetchResumesList = useCallback(
     async params => {
@@ -103,19 +111,17 @@ const Table = () => {
     // add pagination to the params
     params = { ...params, page: 1, limit: 40 };
     fetchResumesList(params);
-  }, [searchParams.toString(), fetchResumesList]);
+  }, [filterResumeQuery, fetchResumesList]);
 
   // Set the default selected resume
   // Only called when the resumeList is fetched successfully and page is loaded
   useEffect(() => {
     if (resumeList.status === 'succeeded' && resumeList.data.length > 0) {
-      console.log('am I called');
       const defaultSelectedResume = searchParams.get('resumeId')
         ? { _id: searchParams.get('resumeId') }
         : resumeList.data[0];
       handleResumeClick(defaultSelectedResume);
     }
-    console.log(resumeList.data?.length);
   }, [resumeList.data?.length]);
 
   // Utilities

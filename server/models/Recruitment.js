@@ -5,6 +5,7 @@ const recruitmentSchema = new mongoose.Schema(
     title: {
       type: String,
       required: true,
+      index: true,
     },
     skillsToMatch: {
       type: [String], // Array of skills required for the position

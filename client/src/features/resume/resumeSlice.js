@@ -5,9 +5,9 @@ import { getAllResumes, getResumeById, updateResumeData } from './resumeApi';
 // Async actions
 export const fetchResumes = createAsyncThunk(
   'resume/fetchResumes',
-  async ({ page, limit }, { rejectWithValue }) => {
+  async (params, { rejectWithValue }) => {
     try {
-      const response = await getAllResumes(page, limit);
+      const response = await getAllResumes(params);
       return response.data;
     } catch (error) {
       return rejectWithValue(

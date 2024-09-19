@@ -10,7 +10,7 @@ const Info = () => {
   // Local state
   const [note, setNote] = useState('');
   const [rating, setRating] = useState(0);
-  const [infoRatingAdjust, setInfoRatingAdjust] = useState(false);
+  const [status, setStatus] = useState('');
   // Redux hooks
   const dispatch = useDispatch(); // Redux dispatch function
   // Redux selectors
@@ -77,19 +77,11 @@ const Info = () => {
   };
 
   useEffect(() => {
-    if (debouncedNote) {
-    }
-  }, [debouncedNote]);
-
-  useEffect(() => {
     if (resume.data.note) setNote(resume.data.note);
     else setNote('');
     if (resume.data.rating) setRating(resume.data.rating);
     else setRating(0);
   }, [resume.data]);
-  useEffect(() => {
-    console.log(resume.data);
-  }, [resume]);
 
   // Utility functions
   function debounce(func, delay) {
@@ -135,7 +127,19 @@ const Info = () => {
         </div>
         <hr />
         <div className=" text-xl m-4 mb-0">Status</div>
-        <div className=" text-lg m-4 mt-0"> {resume.data.status}</div>
+        <select
+          className="w-1/2 m-4 p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)]"
+          value={resume.data.status}
+          onChange={e => {
+            // setStatus(e.target.value);
+            handleResumeUpdate(resume.data._id, { status: e.target.value });
+          }}
+        >
+          <option value="Under Review">Under Review</option>
+          <option value="Accepted">Accepted</option>
+          <option value="Rejected">Rejected</option>
+          <option value="Interview Scheduled">Interview Scheduled</option>
+        </select>
 
         <hr />
         <div className=" text-xl m-4 mb-0">Recruitment ID</div>

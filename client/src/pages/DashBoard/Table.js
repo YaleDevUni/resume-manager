@@ -11,25 +11,34 @@ import {
 // Icons
 import { MdOutlineStarBorder } from 'react-icons/md';
 import { MdOutlineStarPurple500 } from 'react-icons/md';
+import { useSearchParams } from 'react-router-dom';
 
 const Table = () => {
   // Custom hooks
   const { alerts, addAlert } = useAlerts(); // Custom hook to handle alerts
+
   // Redux hooks
   const dispatch = useDispatch(); // Redux dispatch function
+
   // Redux selectors
   const resumeList = useSelector(state => state.resume.resumes);
-
   const resume = useSelector(state => state.resume.resume);
 
-  // fetch resumes
-  const fetchResumesList = useCallback(async () => {
-    try {
-      await dispatch(fetchResumes({ page: 1, limit: 40 })).unwrap();
-    } catch (error) {
-      addAlert(error, 'error', 10000);
-    }
-  }, [dispatch]);
+  // Search params
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Callbacks
+  const fetchResumesList = useCallback(
+    async params => {
+      try {
+        const data = await dispatch(fetchResumes(params)).unwrap();
+      } catch (error) {
+        addAlert(error, 'error', 10000);
+      }
+    },
+    [dispatch, addAlert]
+  );
+
   const handlePreferredClick = async selectedResume => {
     try {
       await dispatch(
@@ -53,6 +62,7 @@ const Table = () => {
     }
   };
   const handleResumeClick = async selectedResume => {
+    console.log('am I');
     try {
       await dispatch(fetchResumeById(selectedResume._id)).unwrap();
       dispatch(
@@ -62,14 +72,51 @@ const Table = () => {
           )
         )
       );
+      // set search params but preserve other params
+      const existingSkills = searchParams.getAll('skills');
+      const existingApplicants = searchParams.getAll('applicants');
+      const existingRecruitments = searchParams.getAll('recruitments');
+      setSearchParams({
+        recruitments: existingRecruitments,
+        applicants: existingApplicants,
+        skills: existingSkills,
+        resumeId: selectedResume._id,
+      });
     } catch (error) {
       addAlert(error, 'error');
     }
   };
 
+  // Fetch resumes list on page load and when search params change
   useEffect(() => {
-    fetchResumesList();
-  }, [fetchResumesList]);
+    const applicantsParam = searchParams.getAll('applicants');
+    const recruitmentParam = searchParams.getAll('recruitments');
+    const skillParam = searchParams.getAll('skills');
+    let params = {};
+    if (applicantsParam || recruitmentParam || skillParam) {
+      params = {
+        applicants: applicantsParam,
+        recruitments: recruitmentParam,
+        skills: skillParam,
+      };
+    }
+    // add pagination to the params
+    params = { ...params, page: 1, limit: 40 };
+    fetchResumesList(params);
+  }, [searchParams.toString(), fetchResumesList]);
+
+  // Set the default selected resume
+  // Only called when the resumeList is fetched successfully and page is loaded
+  useEffect(() => {
+    if (resumeList.status === 'succeeded' && resumeList.data.length > 0) {
+      console.log('am I called');
+      const defaultSelectedResume = searchParams.get('resumeId')
+        ? { _id: searchParams.get('resumeId') }
+        : resumeList.data[0];
+      handleResumeClick(defaultSelectedResume);
+    }
+    console.log(resumeList.data?.length);
+  }, [resumeList.data?.length]);
 
   // Utilities
   const capitalizeWords = str => {

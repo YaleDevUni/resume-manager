@@ -9,38 +9,66 @@ const SearchBarWithTag = () => {
 
   // SearchBar Callback function to set searchParams
   const searchParamsCallback = value => {
-    const existingTags = searchParams.getAll('sklls');
+    const existingSkills = searchParams.getAll('skills');
     const existingApplicants = searchParams.getAll('applicants');
     const existingRecruitments = searchParams.getAll('recruitments');
+    const resumeId = searchParams.get('resumeId');
+    setSearchParams({ resumeId: resumeId });
     switch (queryType) {
       case 'skills':
         setSearchParams({
           recruitments: existingRecruitments,
           applicants: existingApplicants,
-          sklls: [...existingTags, value],
+          skills: [...existingSkills, value],
+          resumeId: resumeId,
         });
         break;
       case 'applicants':
         setSearchParams({
           recruitments: existingRecruitments,
-          sklls: existingTags,
+          skills: existingSkills,
           applicants: [...existingApplicants, value],
+          resumeId: resumeId,
         });
         break;
 
       case 'recruitments':
         setSearchParams({
-          sklls: existingTags,
+          skills: existingSkills,
           applicants: existingApplicants,
           recruitments: [...existingRecruitments, value],
+          resumeId: resumeId,
         });
         break;
-
       default:
         break;
     }
-  };
 
+    // console.log(searchParamsObject);
+  };
+  // const searchParamsCallback = value => {
+  //   console.log(searchParams.entries());
+  //   console.log(searchParams);
+  //   const entries = searchParams.entries();
+
+  //   // Convert iterator to an array and log key-value pairs
+  //   for (const [key, value] of entries) {
+  //     console.log(`${key}: ${value}`);
+  //   }
+
+  //   const params = {
+  //     skills: searchParams.getAll('skills'),
+  //     applicants: searchParams.getAll('applicants'),
+  //     recruitments: searchParams.getAll('recruitments'),
+  //   };
+
+  //   if (params[queryType]) {
+  //     setSearchParams({
+  //       ...params,
+  //       [queryType]: [...params[queryType], value],
+  //     });
+  //   }
+  // };
   return (
     <>
       <div className=" flex flex-row justify-between w-full p-4 gap-1">
@@ -84,7 +112,7 @@ const SearchBarWithTag = () => {
         <div className=" font-extrabold"> Skills:</div>
         {searchParams.getAll('sklls')
           ? searchParams
-              .getAll('sklls')
+              .getAll('skills')
               .map((skill, index) => (
                 <Button className=" text-white bg-green-500">{skill}</Button>
               ))

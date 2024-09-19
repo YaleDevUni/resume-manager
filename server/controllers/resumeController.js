@@ -5,7 +5,7 @@ const PdfService = require('../service/pdfToText.js');
 const { GoogleGenerativeAI, SchemaType } = require('@google/generative-ai');
 const crypto = require('crypto');
 require('dotenv').config();
-
+const { MongoClient, ObjectId } = require('mongodb');
 // Function to save PDF to the database or retrieve existing one
 async function saveOrRetrievePDF(pdf, user) {
   const md5 = crypto.createHash('md5').update(pdf.buffer).digest('hex');
@@ -130,22 +130,81 @@ exports.createBulkResumes = async (req, res) => {
   }
 };
 
-// Get all resumes with pagination
+// Get all resumes with query filters
 exports.getAllResumes = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    const applicants = req.query.applicants ? req.query.applicants : [];
+    const recruitments = req.query.recruitments ? req.query.recruitments : [];
+    const skills = req.query.skills ? req.query.skills : [];
+    const pipeline = [];
 
-    const resumes = await Resume.find()
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .populate({
-        path: 'recruitment',
-        select: 'title position',
+    // Match resumes with specified filters
+    pipeline.push({
+      $match: {
+        ...(applicants.length > 0 ? { applicant: { $in: applicants } } : {}),
+        ...(skills.length > 0 ? { skills: { $all: skills } } : {}),
+      },
+    });
+
+    pipeline.push({
+      $lookup: {
+        from: 'recruitments', // the name of the collection
+        localField: 'recruitment', // the field in the resumes collection
+        foreignField: '_id',
+        as: 'recruitment',
+        pipeline: [
+          {
+            $project: {
+              title: 1,
+              position: 1,
+            },
+          },
+        ],
+      },
+    });
+
+    // Unwind recruitment field if it's an array
+    pipeline.push({
+      $unwind: {
+        path: '$recruitment',
+        preserveNullAndEmptyArrays: true, // Ensure documents are preserved even if there is no match
+      },
+    });
+
+    // Apply additional filtering only if recruitments array is not empty
+    if (recruitments.length > 0) {
+      pipeline.push({
+        $match: {
+          'recruitment.title': { $in: recruitments },
+        },
       });
+    }
+    pipeline.push({
+      $project: {
+        name: 1, // Include applicant
+        rating: 1, // Include rating
+        status: 1, // Include status
+        resumeViewed: 1, // Include resumeViewed
+        isPreferred: 1, // Include isPreferred
+        'recruitment.title': 1, // Include recruitment title
+        'recruitment.position': 1, // Include recruitment position
+      },
+    });
+    // Pagination
+    pipeline.push({
+      $skip: (page - 1) * limit,
+    });
+    pipeline.push({
+      $limit: limit,
+    });
+
+    const resumes = await Resume.aggregate(pipeline);
 
     res.status(200).json(resumes);
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: 'Failed to fetch resumes' });
   }
 };

@@ -1,8 +1,11 @@
 import resumeApi from '../../services/ResumeApiService';
 
-export const getAllResumes = async (page = 1, limit = 10, recruitmentID) => {
+export const getAllResumes = async (params={
+  page: 1,
+  limit: 40,
+}) => {
   return await resumeApi.get('/', {
-    params: { page, limit },
+    params,
   });
 };
 export const getResumeById = async id => {

@@ -1,7 +1,9 @@
 import { useDispatch, useSelector } from 'react-redux';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAlerts, AlertContainer } from '../../hooks/useAlerts';
 import SearchBarWithTag from './SearchBarWithTag';
+// import React
+import React from 'react';
 import {
   fetchResumes,
   fetchResumeById,
@@ -12,8 +14,10 @@ import {
 import { MdOutlineStarBorder } from 'react-icons/md';
 import { MdOutlineStarPurple500 } from 'react-icons/md';
 import { useSearchParams } from 'react-router-dom';
+import * as pdfjsLib from 'pdfjs-dist';
 
 const Table = () => {
+  const pdfContainerRef = useRef(null);
   // Custom hooks
   const { alerts, addAlert } = useAlerts(); // Custom hook to handle alerts
 
@@ -34,7 +38,7 @@ const Table = () => {
     }
     return stringQuery;
   }, [searchParams.toString()]);
-  
+
   // Callbacks
   const fetchResumesList = useCallback(
     async params => {
@@ -90,6 +94,41 @@ const Table = () => {
         skills: existingSkills,
         resumeId: selectedResume._id,
       });
+      try {
+        // Fetch the PDF file URL or path
+
+        // Clear the container before rendering the new PDF
+        pdfContainerRef.current.innerHTML = '';
+
+        const pdf = await pdfjsLib.getDocument({
+          data: resume.data.resumePDF.data.data,
+        }).promise;
+        const page = await pdf.getPage(1); // Display the first page, you can change the page number as needed
+
+        const scale = 2;
+        const viewport = page.getViewport({ scale });
+
+        // Prepare canvas using PDF page dimensions
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        pdfContainerRef.current.appendChild(canvas);
+
+        // Render PDF page into canvas context
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport,
+          
+        };
+
+        await page.render(renderContext).promise;
+      } catch (error) {
+        console.error('Error rendering PDF:', error);
+        console.log(resume.data.resumePDF);
+        addAlert('Error displaying PDF', 'error');
+      }
     } catch (error) {
       addAlert(error, 'error');
     }
@@ -216,6 +255,7 @@ const Table = () => {
               <div className="  h-6 sticky bottom-0 bg-white text-center">
                 {'<'} 1 2 3 4 5 {'>'}
               </div>
+              <div className="w-full" ref={pdfContainerRef} />
             </div>
           </div>
         </div>

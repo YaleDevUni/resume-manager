@@ -6,6 +6,7 @@ const { GoogleGenerativeAI, SchemaType } = require('@google/generative-ai');
 const crypto = require('crypto');
 require('dotenv').config();
 const { MongoClient, ObjectId } = require('mongodb');
+const exp = require('constants');
 // Function to save PDF to the database or retrieve existing one
 async function saveOrRetrievePDF(pdf, user) {
   const md5 = crypto.createHash('md5').update(pdf.buffer).digest('hex');
@@ -50,6 +51,19 @@ async function generateAIResponse(allPdfs) {
                 major: { type: SchemaType.STRING },
                 school: { type: SchemaType.STRING },
                 graduationYear: { type: SchemaType.STRING },
+              },
+            },
+            experience: {
+              type: SchemaType.ARRAY,
+              items: {
+                type: SchemaType.OBJECT,
+                properties: {
+                  title: { type: SchemaType.STRING },
+                  company: { type: SchemaType.STRING },
+                  startDate: { type: SchemaType.STRING },
+                  endDate: { type: SchemaType.STRING },
+                  description: { type: SchemaType.STRING },
+                },
               },
             },
             contact: {
@@ -217,7 +231,9 @@ exports.getResumeById = async (req, res) => {
       resumeID,
       { resumeViewed: true },
       { new: true }
-    ).populate('recruitment');
+    )
+      .populate('recruitment')
+      .populate('resumePDF');
     res.status(200).json(resume);
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch resume' });

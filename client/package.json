@@ -10,6 +10,7 @@
     "axios": "^1.7.5",
     "compromise": "^14.14.0",
     "jwt-decode": "^4.0.0",
+    "pdf-dist": "^1.0.0",
     "pdfjs-dist": "^4.6.82",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

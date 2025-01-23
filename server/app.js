@@ -84,6 +84,11 @@ app.use('/api', demoUserMiddleware, recruitRoutes);
 app.use('/api', demoUserMiddleware, skillRoutes);
 app.use('/api', authMiddleware, demoUserMiddleware, resumeRoutes);
 
+// health check
+app.get('/api/health', (req, res) => {
+  res.json({ success: true });
+});
+
 const PORT = process.env.PORT || (isDevelopment ? 3003 : 5000);
 
 app.listen(PORT, '0.0.0.0', () => {

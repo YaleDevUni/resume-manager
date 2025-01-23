@@ -54,6 +54,7 @@ const corsOptions = {
         'http://localhost:3000',
         'http://localhost:5001',
         'http://ec2-3-107-26-238.ap-southeast-2.compute.amazonaws.com/',
+        '127.0.0.1',
       ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

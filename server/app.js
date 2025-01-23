@@ -55,6 +55,7 @@ const corsOptions = {
         'http://localhost:5001',
         'http://ec2-3-107-26-238.ap-southeast-2.compute.amazonaws.com/',
         '127.0.0.1',
+        '123.215.116.71',
       ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -104,7 +105,10 @@ app.use('/api', authMiddleware, demoUserMiddleware, resumeRoutes);
 
 // health check
 app.get('/api/health', (req, res) => {
-  res.json({ success: true });
+  res.status(200).json({ status: 'ok' });
+});
+app.get('/', (req, res) => {
+  res.status(200).send('Welcome to the server');
 });
 
 const PORT = process.env.PORT || (isDevelopment ? 3003 : 5000);

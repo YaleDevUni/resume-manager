@@ -56,6 +56,7 @@ const corsOptions = {
         'http://ec2-3-107-26-238.ap-southeast-2.compute.amazonaws.com/',
         'http://127.0.0.1',
         'http://123.215.116.71',
+        'https://resume.yesyeil.ca',
       ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -100,7 +101,6 @@ app.get('/', (req, res) => {
   res.status(200).send('Welcome to the server');
 });
 
-
 /** rate limit middleware */
 app.use('/api', apiLimiter);
 app.use('/api/auth/login', authLimiter);
@@ -111,7 +111,6 @@ app.use('/api', authRoutes);
 app.use('/api', demoUserMiddleware, recruitRoutes);
 app.use('/api', demoUserMiddleware, skillRoutes);
 app.use('/api', authMiddleware, demoUserMiddleware, resumeRoutes);
-
 
 const PORT = process.env.PORT || (isDevelopment ? 3003 : 5000);
 

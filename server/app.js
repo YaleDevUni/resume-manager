@@ -62,6 +62,7 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
+console.log('corsOptions', corsOptions);
 /** policies */
 app.use(cors(corsOptions));
 app.set('trust proxy', 1);

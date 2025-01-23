@@ -1,77 +1,29 @@
 import SearchBar from '../../components/SearchBar';
-import { useSearchParams } from 'react-router-dom';
 import { useState } from 'react';
 import Button from '../../components/Button';
+import useCustomSearchParams from '../../hooks/SearchParamService';
+
 const SearchBarWithTag = () => {
-  // Local state
   const [queryType, setQueryType] = useState('recruitments');
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { searchParams, appendSearchParams, removeSearchParams } =
+    useCustomSearchParams();
 
-  // SearchBar Callback function to set searchParams
   const searchParamsCallback = value => {
-    const existingSkills = searchParams.getAll('skills');
-    const existingApplicants = searchParams.getAll('applicants');
-    const existingRecruitments = searchParams.getAll('recruitments');
-    const resumeId = searchParams.get('resumeId');
-    setSearchParams({ resumeId: resumeId });
-    switch (queryType) {
-      case 'skills':
-        setSearchParams({
-          recruitments: existingRecruitments,
-          applicants: existingApplicants,
-          skills: [...existingSkills, value],
-          resumeId: resumeId,
-        });
-        break;
-      case 'applicants':
-        setSearchParams({
-          recruitments: existingRecruitments,
-          skills: existingSkills,
-          applicants: [...existingApplicants, value],
-          resumeId: resumeId,
-        });
-        break;
-
-      case 'recruitments':
-        setSearchParams({
-          skills: existingSkills,
-          applicants: existingApplicants,
-          recruitments: [...existingRecruitments, value],
-          resumeId: resumeId,
-        });
-        break;
-      default:
-        break;
-    }
-
-    // console.log(searchParamsObject);
+    appendSearchParams(queryType, value);
   };
-  // const searchParamsCallback = value => {
-  //   console.log(searchParams.entries());
-  //   console.log(searchParams);
-  //   const entries = searchParams.entries();
 
-  //   // Convert iterator to an array and log key-value pairs
-  //   for (const [key, value] of entries) {
-  //     console.log(`${key}: ${value}`);
-  //   }
+  const handleSortChange = e => {
+    const value = e.target.value;
+    if (value === 'none') {
+      removeSearchParams('sortConfig');
+    } else {
+      appendSearchParams('sortConfig', value);
+    }
+  };
 
-  //   const params = {
-  //     skills: searchParams.getAll('skills'),
-  //     applicants: searchParams.getAll('applicants'),
-  //     recruitments: searchParams.getAll('recruitments'),
-  //   };
-
-  //   if (params[queryType]) {
-  //     setSearchParams({
-  //       ...params,
-  //       [queryType]: [...params[queryType], value],
-  //     });
-  //   }
-  // };
   return (
     <>
-      <div className=" flex flex-row justify-between w-full p-4 gap-1">
+      <div className="text-xs flex flex-row justify-between w-full p-4 gap-1">
         <SearchBar
           className={'w-full'}
           queryType={queryType}
@@ -79,44 +31,91 @@ const SearchBarWithTag = () => {
         />
         <select
           className="w-32 p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)]"
-          value={queryType} // Ensure controlled component
-          onChange={e => setQueryType(e.target.value)} // Update queryType on selection
+          value={queryType}
+          onChange={e => setQueryType(e.target.value)}
         >
           <option value="skills">Skills</option>
-          <option value="applicants">Applicants</option>
+          <option value="originalFileName">File Name</option>
           <option value="recruitments">Recruitments</option>
         </select>
 
+        <select
+          className="w-40 p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)]"
+          value={searchParams.get('sortConfig') || 'none'}
+          onChange={handleSortChange}
+        >
+          <option value="none">Sort by...</option>
+          <option value="fileName_asc">Name (A-Z)</option>
+          <option value="fileName_desc">Name (Z-A)</option>
+          <option value="rating_asc">Rating (Low-High)</option>
+          <option value="rating_desc">Rating (High-Low)</option>
+          <option value="date_asc">Date (Oldest)</option>
+          <option value="date_desc">Date (Latest)</option>
+        </select>
+
         <button
-          onClick={() => setSearchParams({ sklls: [] })}
-          className=" w-32 p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)]"
+          onClick={() => {
+            removeSearchParams('skills', '', true);
+            removeSearchParams('sortConfig');
+          }}
+          className="w-28 p-1 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)]"
         >
           Reset
         </button>
-        <button className=" w-32 p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)]">
+        <button className="w-28 p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)]">
           Search
         </button>
       </div>
-      <div className=" flex flex-row flex-wrap items-center w-full gap-1 px-4">
-        <div className=" font-extrabold"> Recruitment ID:</div>
-        {searchParams.getAll('recruitments')
-          ? searchParams
-              .getAll('recruitments')
-              .map((recruitment, index) => (
-                <Button className=" text-white bg-red-500">
-                  {recruitment}
-                </Button>
-              ))
-          : null}
-        <div className="h-8 border-x-2 border-gray-300 mx-2" />
-        <div className=" font-extrabold"> Skills:</div>
-        {searchParams.getAll('sklls')
-          ? searchParams
-              .getAll('skills')
-              .map((skill, index) => (
-                <Button className=" text-white bg-green-500">{skill}</Button>
-              ))
-          : null}
+
+      <div className="text-xs flex flex-row flex-wrap items-center w-full gap-1 px-4">
+        <div className="font-extrabold">Recruitment ID:</div>
+        {searchParams.getAll('recruitments')?.map((recruitment, index) => (
+          <Button
+            key={index}
+            className="text-white bg-red-500"
+            onClick={() => {
+              removeSearchParams('recruitments', recruitment);
+            }}
+          >
+            {recruitment}
+          </Button>
+        ))}
+        <div className="h-5 border-x border-gray-300 mx-1" />
+        <div className="font-extrabold">Skills:</div>
+        {searchParams.getAll('skills')?.map((skill, index) => (
+          <Button
+            key={index}
+            className="text-white bg-green-500"
+            onClick={() => {
+              removeSearchParams('skills', skill);
+            }}
+          >
+            {skill}
+          </Button>
+        ))}
+      </div>
+      <div className="mt-2 text-xs flex flex-row flex-wrap items-center w-full gap-1 px-4">
+        <div className="font-extrabold">File name:</div>
+        {searchParams.getAll('originalFileName')?.map((fileName, index) => (
+          <Button
+            key={index}
+            className="text-xs hover:bg-red-200"
+            onClick={() => {
+              removeSearchParams('originalFileName', fileName);
+            }}
+          >
+            {fileName}
+          </Button>
+        ))}
+        <div className="mx-1" />
+        {Number(searchParams.getAll('rating')) > 0 && (
+          <div className="font-extrabold">
+            Minimum rating: {Number(searchParams.getAll('rating'))}
+          </div>
+        )}
+        {searchParams.getAll('showOnlyPreference').toString() === 'true' && (
+          <div className="font-extrabold">Show only preference: Yes </div>
+        )}
       </div>
     </>
   );

@@ -2,8 +2,12 @@ const Resume = require('../models/Resume');
 const PDF = require('../models/PDF');
 const User = require('../models/User');
 const PdfService = require('../service/pdfToText.js');
-const { GoogleGenerativeAI, SchemaType } = require('@google/generative-ai');
 const crypto = require('crypto');
+const NodeCache = require('node-cache');
+const skillsCache = new NodeCache({ stdTTL: 3600 }); // Cache for 1 hour
+const Skills = require('../models/Skills');
+const path = require('path');
+const mongoose = require('mongoose');
 require('dotenv').config();
 const { MongoClient, ObjectId } = require('mongodb');
 const exp = require('constants');
@@ -25,94 +29,51 @@ async function saveOrRetrievePDF(pdf, user) {
 
   return pdfInMongo;
 }
-
-// Function to generate AI response
-async function generateAIResponse(allPdfs) {
-  const genAI = new GoogleGenerativeAI(process.env.API_KEY);
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    generationConfig: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: SchemaType.ARRAY,
-        items: {
-          type: SchemaType.OBJECT,
-          properties: {
-            order: { type: SchemaType.NUMBER },
-            applicant: { type: SchemaType.STRING },
-            skills: {
-              type: SchemaType.ARRAY,
-              items: { type: SchemaType.STRING },
-            },
-            education: {
-              type: SchemaType.OBJECT,
-              properties: {
-                degree: { type: SchemaType.STRING },
-                major: { type: SchemaType.STRING },
-                school: { type: SchemaType.STRING },
-                graduationYear: { type: SchemaType.STRING },
-              },
-            },
-            experience: {
-              type: SchemaType.ARRAY,
-              items: {
-                type: SchemaType.OBJECT,
-                properties: {
-                  title: { type: SchemaType.STRING },
-                  company: { type: SchemaType.STRING },
-                  startDate: { type: SchemaType.STRING },
-                  endDate: { type: SchemaType.STRING },
-                  description: { type: SchemaType.STRING },
-                },
-              },
-            },
-            contact: {
-              type: SchemaType.OBJECT,
-              properties: {
-                email: { type: SchemaType.STRING },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
-
-  const prompt =
-    'Convert resumes to list of json. Each resume have resume(n) at top of the resume.\n' +
-    allPdfs;
-
-  const result = await model.generateContent(prompt);
-  return JSON.parse(result.response.text());
+// Function to get skills from cache or database
+async function getSkillsList() {
+  let skills = skillsCache.get('allSkills');
+  if (!skills) {
+    // If skills are not in cache, fetch from database
+    skills = await Skills.find({}, { skill: 1, type: 1, _id: 0 });
+    skillsCache.set('allSkills', skills);
+  }
+  return skills;
 }
+async function parseSkills(pdfText) {
+  try {
+    const skills = await getSkillsList();
+    const foundSkills = new Set();
+    const normalizedText = pdfText.toLowerCase();
 
-// Function to create resume documents
-async function createResumeDocuments(resumesData, pdfsOnDB, user, recruitment) {
-  const resumePromises = resumesData.map(async (resume, index) => {
-    // convert double spaces to single space and trim and remove special characters and convert to lowercase for name
-    const sanitizedApplicantName = resume.applicant
-      ?.replace(/\s+/g, ' ')
-      ?.trim()
-      ?.replace(/[^a-zA-Z0-9 ]/g, '')
-      ?.toLowerCase();
-    const resumeDoc = new Resume({
-      name: sanitizedApplicantName || 'Unknown',
-      createdBy: user,
-      recruitment,
-      resumePDF: pdfsOnDB[index]._id,
-      education: resume.education || {},
-      contact: resume.contact || {},
-      skills: resume.skills
-        ? resume.skills.map(skill => skill.toLowerCase().replace(/[.,]/g, ''))
-        : [],
-    });
-    await resumeDoc.save();
-  });
+    // Add some debug logging
 
-  await Promise.all(resumePromises);
+    for (const data of skills) {
+      const skillVariations = [
+        data.skill.toLowerCase(),
+        data.skill.toLowerCase().replace(/\./g, ''),
+        data.skill.toLowerCase().replace(/js$/i, 'javascript'),
+        data.skill.toLowerCase() + '.js',
+        data.skill.toLowerCase().replace(/^c\+\+$/i, 'cpp'),
+        data.skill.toLowerCase().replace(/^c#$/i, 'csharp'),
+      ];
+      for (const variation of skillVariations) {
+        const regex = new RegExp(`\\b${variation}\\b`, 'i');
+        if (regex.test(normalizedText)) {
+          // Changed from skills.skill to data.skill
+          foundSkills.add(data.skill);
+          break;
+        }
+      }
+    }
+
+    // Add debug logging
+
+    return Array.from(foundSkills);
+  } catch (error) {
+    console.error('Error extracting skills:', error);
+    return [];
+  }
 }
-
-// Controller to handle bulk resume upload
 exports.createBulkResumes = async (req, res) => {
   try {
     const { recruitment } = req.body;
@@ -122,104 +83,182 @@ exports.createBulkResumes = async (req, res) => {
       file => file.mimetype === 'application/pdf'
     );
 
-    const allPdfs = [];
-    const pdfsOnDB = [];
-
     for (let index = 0; index < pdfFiles.length; index++) {
       const pdf = pdfFiles[index];
       const pdfText = await pdfService.extractTextFromPdf(pdf);
-      pdfText.unshift(`resume${index + 1}\n`);
-      allPdfs.push(pdfText.join(' '));
+      const skills = await parseSkills(pdfText);
       const pdfInMongo = await saveOrRetrievePDF(pdf, user);
-      pdfsOnDB.push(pdfInMongo);
+
+      const resumeDoc = new Resume({
+        originalFileName: pdf.originalname,
+        recruitment: recruitment,
+        createdBy: user,
+        resumePDF: pdfInMongo._id,
+        skills,
+      });
+
+      await resumeDoc.save();
     }
 
-    const resumesData = await generateAIResponse(allPdfs.join(' '));
-    await createResumeDocuments(resumesData, pdfsOnDB, user, recruitment);
-
-    res.status(201).json({ message: 'Resumes uploaded successfully' });
+    res.status(201).json({
+      message: 'Resumes uploaded successfully',
+    });
   } catch (error) {
     console.error('Error uploading resumes:', error);
     res.status(500).json({ message: 'Failed to upload resumes' });
   }
 };
-
 // Get all resumes with query filters
 exports.getAllResumes = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const applicants = req.query.applicants ? req.query.applicants : [];
-    const recruitments = req.query.recruitments ? req.query.recruitments : [];
-    const skills = req.query.skills ? req.query.skills : [];
-    const pipeline = [];
-
-    // Match resumes with specified filters
-    pipeline.push({
-      $match: {
-        ...(applicants.length > 0 ? { applicant: { $in: applicants } } : {}),
-        ...(skills.length > 0 ? { skills: { $all: skills } } : {}),
-      },
-    });
-
-    pipeline.push({
-      $lookup: {
-        from: 'recruitments', // the name of the collection
-        localField: 'recruitment', // the field in the resumes collection
-        foreignField: '_id',
-        as: 'recruitment',
-        pipeline: [
-          {
-            $project: {
-              title: 1,
-              position: 1,
-            },
-          },
-        ],
-      },
-    });
-
-    // Unwind recruitment field if it's an array
-    pipeline.push({
-      $unwind: {
-        path: '$recruitment',
-        preserveNullAndEmptyArrays: true, // Ensure documents are preserved even if there is no match
-      },
-    });
-
-    // Apply additional filtering only if recruitments array is not empty
-    if (recruitments.length > 0) {
-      pipeline.push({
-        $match: {
-          'recruitment.title': { $in: recruitments },
-        },
-      });
+    // Parse query parameters with default values
+    const page = parseInt(req.query.currentPage, 10) || 1;
+    const limit = parseInt(req.query.pagination, 10) || 10;
+    const originalFileName = req.query.originalFileName
+      ? Array.isArray(req.query.originalFileName)
+        ? req.query.originalFileName
+        : [req.query.originalFileName]
+      : [];
+    const recruitments = req.query.recruitments
+      ? Array.isArray(req.query.recruitments)
+        ? req.query.recruitments
+        : [req.query.recruitments]
+      : [];
+    const skills = req.query.skills
+      ? Array.isArray(req.query.skills)
+        ? req.query.skills
+        : [req.query.skills]
+      : [];
+    let rating = req.query.rating ? parseInt(req.query.rating, 10) : 0;
+    const status = req.query.status ? req.query.status : 'All';
+    const showOnlyPreference = req.query.showOnlyPreference === 'true';
+    const sortConfig = req.query.sortConfig || '';
+    // Parse sort configuration
+    let sortStage = {};
+    if (sortConfig) {
+      const [field, direction] = sortConfig.split('_');
+      switch (field) {
+        case 'fileName':
+          sortStage = {
+            $sort: { originalFileName: direction === 'asc' ? 1 : -1 },
+          };
+          break;
+        case 'rating':
+          sortStage = { $sort: { rating: direction === 'asc' ? 1 : -1 } };
+          break;
+        case 'date':
+          sortStage = { $sort: { createdAt: direction === 'asc' ? 1 : -1 } };
+          break;
+        default:
+          sortStage = { $sort: { createdAt: -1 } }; // Default sort
+      }
     }
-    pipeline.push({
-      $project: {
-        name: 1, // Include applicant
-        rating: 1, // Include rating
-        status: 1, // Include status
-        resumeViewed: 1, // Include resumeViewed
-        isPreferred: 1, // Include isPreferred
-        'recruitment.title': 1, // Include recruitment title
-        'recruitment.position': 1, // Include recruitment position
+
+    // Adjust rating if necessary
+    if (rating === 1) rating = 0;
+
+    // Build match conditions based on filters
+    const matchConditions = {
+      ...(originalFileName.length > 0
+        ? { originalFileName: { $in: originalFileName } }
+        : {}),
+      ...(skills.length > 0 ? { skills: { $all: skills } } : {}),
+      ...(rating > 0 ? { rating: { $gte: rating } } : {}),
+      ...(showOnlyPreference ? { isPreferred: true } : {}),
+      ...(status !== 'All' && status !== 'null' ? { status } : {}),
+      createdBy: new mongoose.Types.ObjectId(req.user.userId),
+    };
+
+    // Construct the aggregation pipeline
+    const pipeline = [
+      { $match: matchConditions },
+      {
+        $lookup: {
+          from: 'recruitments',
+          localField: 'recruitment',
+          foreignField: '_id',
+          as: 'recruitment',
+          pipeline: [
+            {
+              $project: {
+                title: 1,
+                position: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: {
+          path: '$recruitment',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      // Additional filtering based on recruitments if provided
+      ...(recruitments.length > 0
+        ? [
+            {
+              $match: {
+                'recruitment.title': { $in: recruitments },
+              },
+            },
+          ]
+        : []),
+      {
+        $project: {
+          originalFileName: 1,
+          rating: 1,
+          status: 1,
+          resumeViewed: 1,
+          isPreferred: 1,
+          createdAt: 1,
+          'recruitment.title': 1,
+          'recruitment.position': 1,
+        },
+      },
+      // Add sort stage if sorting is specified
+      ...(Object.keys(sortStage).length > 0 ? [sortStage] : []),
+      // Facet for pagination
+      {
+        $facet: {
+          data: [{ $skip: (page - 1) * limit }, { $limit: limit }],
+          totalCount: [{ $count: 'count' }],
+        },
+      },
+      {
+        $unwind: '$totalCount',
+      },
+      {
+        $project: {
+          data: 1,
+          totalCount: '$totalCount.count',
+        },
+      },
+    ];
+
+    const result = await Resume.aggregate(pipeline);
+
+    const resumes = result.length > 0 ? result[0].data : [];
+    const totalCount = result.length > 0 ? result[0].totalCount : 0;
+    const totalPages = Math.ceil(totalCount / limit);
+
+    res.status(200).json({
+      success: true,
+      data: resumes,
+      pagination: {
+        totalItems: totalCount,
+        currentPage: page,
+        totalPages: totalPages,
+        pageSize: limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
       },
     });
-    // Pagination
-    pipeline.push({
-      $skip: (page - 1) * limit,
-    });
-    pipeline.push({
-      $limit: limit,
-    });
-
-    const resumes = await Resume.aggregate(pipeline);
-
-    res.status(200).json(resumes);
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: 'Failed to fetch resumes' });
+    console.error('Error fetching resumes:', error);
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to fetch resumes' });
   }
 };
 
@@ -231,12 +270,23 @@ exports.getResumeById = async (req, res) => {
       resumeID,
       { resumeViewed: true },
       { new: true }
-    )
-      .populate('recruitment')
-      .populate('resumePDF');
+    ).populate('recruitment');
+    // .populate('resumePDF');
     res.status(200).json(resume);
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch resume' });
+  }
+};
+
+exports.getPdfById = async (req, res) => {
+  const pdfID = req.params.id;
+  try {
+    const pdf = await PDF.findById(pdfID);
+    // Send the buffer data directly, not as JSON
+    res.set('Content-Type', 'application/pdf');
+    res.send(pdf.data); // Assuming 'data' is the buffer field
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch pdf' });
   }
 };
 
@@ -257,7 +307,6 @@ exports.updateResumeById = async (req, res) => {
     await resume.save();
     res.status(200).json(resume);
   } catch (error) {
-    console.log(error);
     res.status(500).json({ message: 'Failed to update resume' });
   }
 };
@@ -287,22 +336,21 @@ exports.getAllResumesNamesForSearch = async (req, res) => {
       {
         $match: {
           createdBy: user._id,
-          name: { $regex: new RegExp(req.query.q, 'i') },
+          originalFileName: { $regex: new RegExp(req.query.q, 'i') },
         },
       },
       {
         $group: {
-          _id: '$name',
+          _id: '$originalFileName',
         },
       },
       {
         $project: {
           _id: 0,
-          name: '$_id',
+          originalFileName: '$_id',
         },
       },
     ]);
-    console.log(resumes);
     res.status(200).json(resumes);
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch resumes' });

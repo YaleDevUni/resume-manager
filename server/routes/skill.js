@@ -4,7 +4,6 @@ const router = express.Router();
 const authMiddleware = require('../middlewares/authMiddleware');
 // Get all skills
 router.get('/skills', authMiddleware, async (req, res) => {
-  console.log('GET /skills');
   try {
     const skills = await Skill.find();
     res.json(skills);

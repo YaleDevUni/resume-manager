@@ -6,6 +6,12 @@ import PdfUploader from '../pages/PdfUploader/RecruitmentAndPdf';
 import ProtectedRoute from './ProtectedRoute';
 import { createBrowserRouter } from 'react-router-dom';
 import { isAuthenticated } from '../services/AuthService';
+import VerificationSuccess from '../pages/Auth/VerificationSuccess';
+import VerificationPending from '../pages/Auth/VerificationPending';
+import ForgotPassword from '../pages/Auth/ForgotPassword';
+import ResetPassword from '../pages/Auth/ResetPassword';
+import UserInfo from '../pages/User/UserInfo';
+import ChangePassword from '../pages/Auth/ChangePassword';
 // Define the routes using createBrowserRouter
 const router = createBrowserRouter([
   {
@@ -26,6 +32,22 @@ const router = createBrowserRouter([
     element: <SignUp />,
   },
   {
+    path: '/verification-success',
+    element: <VerificationSuccess />,
+  },
+  {
+    path: '/verification-pending',
+    element: <VerificationPending />,
+  },
+  {
+    path: '/forgot-password',
+    element: <ForgotPassword />,
+  },
+  {
+    path: '/reset-password/:token',
+    element: <ResetPassword />,
+  },
+  {
     element: <ProtectedRoute isAuthenticated={isAuthenticated} />, // Protects the nested routes
     children: [
       {
@@ -35,6 +57,14 @@ const router = createBrowserRouter([
       {
         path: '/dashboard/pdf-uploader',
         element: <PdfUploader />,
+      },
+      {
+        path: '/dashboard/profile',
+        element: <UserInfo />,
+      },
+      {
+        path: '/dashboard/change-password',
+        element: <ChangePassword />,
       },
       // Add other protected routes here if needed
     ],

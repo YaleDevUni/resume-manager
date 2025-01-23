@@ -25,6 +25,17 @@ resumeApi.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+async function getPdfById(id) {
+  try {
+    const response = await resumeApi.get(`pdf/${id}`, {
+      responseType: 'arraybuffer', // Add this line
+    });
+    return response; // Return the whole response, not just data
+  } catch (error) {
+    console.error('Error fetching pdf:', error);
+    throw error; // Better to throw error than return empty array for PDF fetch
+  }
+}
 
 async function uploadBulkResumes(pdfs, recruitment) {
   try {
@@ -53,9 +64,9 @@ async function uploadBulkResumes(pdfs, recruitment) {
   }
 }
 
-async function searchApplicants(searchTerm) {
+async function searchByOriginalFileName(searchTerm) {
   try {
-    const response = await resumeApi.get('/searchApplicant', {
+    const response = await resumeApi.get('/searchByFileName', {
       params: { q: searchTerm },
     });
     return response.data;
@@ -64,5 +75,5 @@ async function searchApplicants(searchTerm) {
     return [];
   }
 }
-export { uploadBulkResumes, searchApplicants };
+export { uploadBulkResumes, searchByOriginalFileName, getPdfById };
 export default resumeApi;

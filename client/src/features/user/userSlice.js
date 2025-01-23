@@ -1,63 +1,82 @@
-// src/features/user/userSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { loginUser, registerUser, updateUser, logoutUser } from './userApi';
-import { getUser } from '../../services/AuthService';
+import { loginUser, registerUser, updateUser, logoutUser, getMe } from './userApi';
+
+// Initial state that checks localStorage
+const initialState = {
+  user: JSON.parse(localStorage.getItem('user')) || null,
+  status: 'idle',
+  isLoggedIn: !!localStorage.getItem('token'),
+  token: localStorage.getItem('token'),
+  error: null,
+  verificationStatus: 'idle'
+};
+
 // Async actions
 export const register = createAsyncThunk(
   'user/register',
-  async ({ username, password }, { rejectWithValue }) => {
-    // FIXME: Remove after testing
-    // await new Promise(resolve => setTimeout(resolve, 500));
+  async ({ email, password }, { rejectWithValue }) => {
     try {
-      const response = await registerUser(username, password);
+      const response = await registerUser(email, password);
       return response.data;
     } catch (error) {
-      // check error.response.data is string or object
       if (typeof error.response.data === 'string')
         return rejectWithValue(error.response.data);
-      else
-        return rejectWithValue(
-          error.response?.data?.message || 'Unknown error'
-        );
+      return rejectWithValue(error.response?.data?.message || 'Unknown error');
     }
   }
 );
 
 export const login = createAsyncThunk(
   'user/login',
-  async ({ username, password }, { rejectWithValue }) => {
-    // FIXME: Remove after testing
-    // await new Promise(resolve => setTimeout(resolve, 500));
+  async ({ email, password }, { rejectWithValue }) => {
     try {
-      const response = await loginUser(username, password);
+      const response = await loginUser(email, password);
+      // Store token and user in localStorage on successful login
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
       return response.data;
     } catch (error) {
-      // check status code and return error message
-      if (error.response.status === 401)
-        return rejectWithValue('Invalid username or password');
-      else if (typeof error.response.data === 'string')
-        return rejectWithValue(error.response.data);
-      else
-        return rejectWithValue(
-          error.response?.data?.message || 'Unknown error'
-        );
+      if (error.response.status === 401) {
+        if (error.response.data?.message?.includes('verify your email')) {
+          return rejectWithValue('Please verify your email before logging in');
+        }
+        return rejectWithValue('Invalid email or password');
+      }
+      return rejectWithValue(error.response?.data?.message || 'Unknown error');
     }
   }
 );
 
-// Create user slice
+export const fetchCurrentUser = createAsyncThunk(
+  'user/fetchCurrentUser',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await getMe();
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch user data');
+    }
+  }
+);
+
+export const logout = createAsyncThunk(
+  'user/logout',
+  async () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    return null;
+  }
+);
+
 const userSlice = createSlice({
   name: 'user',
-  initialState: {
-    user: getUser(),
-    status: 'idle',
-    isLoggedIn: false,
-    token: null,
-    error: null,
-  },
+  initialState,
   reducers: {
     resetError: state => {
       state.error = null;
+    },
+    resetVerificationStatus: state => {
+      state.verificationStatus = 'idle';
     },
   },
   extraReducers: builder => {
@@ -67,7 +86,7 @@ const userSlice = createSlice({
       })
       .addCase(register.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        // state.user = action.payload;
+        state.verificationStatus = 'pending';
       })
       .addCase(register.rejected, (state, action) => {
         state.status = 'failed';
@@ -85,9 +104,28 @@ const userSlice = createSlice({
       .addCase(login.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload;
+      })
+      .addCase(fetchCurrentUser.pending, state => {
+        state.status = 'loading';
+      })
+      .addCase(fetchCurrentUser.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.user = action.payload.user;
+        state.isLoggedIn = true;
+        localStorage.setItem('user', JSON.stringify(action.payload.user));
+      })
+      .addCase(fetchCurrentUser.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
+      })
+      .addCase(logout.fulfilled, state => {
+        state.user = null;
+        state.token = null;
+        state.isLoggedIn = false;
+        state.status = 'idle';
       });
   },
 });
 
-export const { resetError } = userSlice.actions;
+export const { resetError, resetVerificationStatus } = userSlice.actions;
 export default userSlice.reducer;

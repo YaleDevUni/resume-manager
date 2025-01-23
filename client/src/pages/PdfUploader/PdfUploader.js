@@ -64,7 +64,6 @@ const PdfUploader = () => {
           if (item.isFile && depth > 0) {
             item.file(file => {
               if (file.type === 'application/pdf') {
-                console.log(file);
                 pdfFiles.push(file);
               }
               resolve();
@@ -109,6 +108,12 @@ const PdfUploader = () => {
       await Promise.all([traverseAllItems(), addFiles()]);
 
       if (pdfFiles.length > 0) {
+        // make sure it's less than 90mb
+        const totalSize = pdfFiles.reduce((acc, file) => acc + file.size, 0);
+        if (totalSize > 90 * 1024 * 1024) {
+          addAlert('Total file size exceeds 90MB limit', 'error');
+          return;
+        }
         setFiles(prevFiles => [...prevFiles, ...pdfFiles]);
         setPdfCount(prevCount => prevCount + pdfFiles.length);
       } else {
@@ -126,7 +131,6 @@ const PdfUploader = () => {
   const handleReadPdf = async file => {
     const text = await PdfService.extractTextFromPdf(file);
     alert(text);
-    console.log(text);
   };
 
   const handleUpload = async () => {
@@ -154,27 +158,27 @@ const PdfUploader = () => {
   return (
     <>
       <AlertContainer alerts={alerts} />
-      <div className="  w-1/2 m-2  p-2 border shadow-[0_0_6px_rgba(0,0,0,0.2)] rounded-lg  ">
+      <div className="  w-1/2 m-2  p-2 border  rounded-lg  ">
         {recruitment._id ? (
-          <div className=" text-3xl  mb-4">
+          <div className=" text-xl  mb-4">
             Upload Resume to <i> {recruitment.title}</i>
           </div>
         ) : (
-          <div className=" text-3xl  mb-4">
+          <div className=" text-xl  mb-4">
             Please select a recruitment to upload resume
           </div>
         )}
-        <div className=" flex flex-row items-center gap-8">
+        {/* <div className=" flex flex-row items-center gap-8">
           <div className=" font-bold">Select PDF File</div>
           <div>
-            <button className=" font-bold border shadow-[0_0_6px_rgba(0,0,0,0.2)] rounded-lg p-2">
+            <button className=" text-sm font-bold border  rounded-lg py-1 px-2">
               Browse File
             </button>
           </div>
-        </div>
+        </div> */}
         {/* drag and drop */}
         <div
-          className={`mt-8 border-dashed border-2 h-72 flex flex-row items-center justify-center rounded-lg ${
+          className={`mt-8 border-dashed border-2 h-56 flex flex-row items-center justify-center rounded-lg ${
             dragActive
               ? 'border-blue-500 bg-blue-100'
               : 'border-gray-300 bg-slate-200'
@@ -187,7 +191,7 @@ const PdfUploader = () => {
           <div className="text-center">Drag and Drop PDF File Here</div>
         </div>
         <div className="font-bold mt-8">File list</div>
-        <div className="h-96 overflow-auto mt-4 p-2 border shadow-inner overflow-y-scroll">
+        <div className=" h-64 overflow-auto mt-4 p-2 border shadow-inner overflow-y-scroll">
           {files.length > 0 ? (
             files.map((file, index) => (
               <div
@@ -196,20 +200,20 @@ const PdfUploader = () => {
                   index % 2 === 1 ? 'bg-slate-100' : 'bg-slate-200'
                 }`}
               >
-                <div className="ml-4 font-bold">{file.name}</div>
+                <div className="text-xs ml-4 ">{file.name}</div>
                 <div>
                   <button
                     onClick={() => handleRemoveFile(index)}
-                    className="bg-white mr-8 font-bold border shadow-[0_0_6px_rgba(0,0,0,0.2)] rounded-lg p-2"
+                    className="text-xs bg-white mr-2 font-bold border rounded-md py-1 px-2 hover:bg-red-200"
                   >
                     Remove
                   </button>
-                  <button
+                  {/* <button
                     onClick={() => handleReadPdf(file)}
-                    className="bg-white font-bold border shadow-[0_0_6px_rgba(0,0,0,0.2)] rounded-lg p-2"
+                    className="text-xs bg-white font-bold border  rounded-md py-1 px-2"
                   >
                     Temp
-                  </button>
+                  </button> */}
                 </div>
               </div>
             ))
@@ -217,13 +221,13 @@ const PdfUploader = () => {
             <div className="text-center text-gray-500">No files uploaded</div>
           )}
         </div>
-        <div className=" w-full flex flex-row justify-end gap-4  my-4">
+        <div className=" text-sm w-full flex flex-row justify-end gap-4  my-4">
           <Button
             onClick={() => {
               setFiles([]);
               setPdfCount(0);
             }}
-            className=" font-bold"
+            className="  font-bold"
             disabled={uploading}
           >
             Cancel

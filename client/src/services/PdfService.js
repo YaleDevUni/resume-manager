@@ -37,7 +37,6 @@ class PdfService {
 
     // now match the skills with the words
     const matchedSkills = skillsToMatch.filter(skill => words.includes(skill));
-    console.log('Matched Skills:', matchedSkills);
     alert(matchedSkills);
 
     return pagesText;

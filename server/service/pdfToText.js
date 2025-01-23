@@ -24,10 +24,16 @@ class PdfService {
 
       pagesText.push(pageText);
     }
-    // refine pagesText so that each word converted to lowercase and without . (dot) also , ( comma)
-    const refinedText = pagesText.map(pageText =>
-      pageText.toLowerCase().replace(/[.,]/g, '')
-    );
+    const refinedText = pagesText
+      .map(pageText =>
+        pageText
+          .toLowerCase()
+          .replace(/[.,]/g, ' ') // Replace punctuation with spaces
+          .replace(/\s+/g, ' ') // Normalize multiple spaces
+          .trim()
+      )
+      .join(' ');
+
     return refinedText;
   }
 }

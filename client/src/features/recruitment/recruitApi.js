@@ -15,7 +15,6 @@ export const getRecruitmentById = async id => {
 };
 
 export const updateRecruitmentById = async (id, updatedData) => {
-  console.log('endpoint', id, updatedData);
   return await recruitmentApi.put(`/${id}`, updatedData);
 };
 

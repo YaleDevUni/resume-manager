@@ -1,16 +1,24 @@
 const mongoose = require('mongoose');
-const passportLocalMongoose = require('passport-local-mongoose'); // Auth strategy
+const passportLocalMongoose = require('passport-local-mongoose');
 
 const userSchema = new mongoose.Schema(
   {
-    username: { type: String, required: true, unique: true },
-    // No need for password field, handled by passport-local-mongoose
+    email: { type: String, required: true, unique: true },
+    isVerified: { type: Boolean, default: false },
+    verificationToken: String,
+    verificationTokenExpires: Date,
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
   },
   {
     toJSON: {
       transform: (doc, ret) => {
         delete ret.hash;
         delete ret.salt;
+        delete ret.verificationToken;
+        delete ret.verificationTokenExpires;
+        delete ret.resetPasswordToken;
+        delete ret.resetPasswordExpires;
         return ret;
       },
     },
@@ -18,20 +26,29 @@ const userSchema = new mongoose.Schema(
       transform: (doc, ret) => {
         delete ret.hash;
         delete ret.salt;
+        delete ret.verificationToken;
+        delete ret.verificationTokenExpires;
+        delete ret.resetPasswordToken;
+        delete ret.resetPasswordExpires;
         return ret;
       },
     },
   }
 );
+
 userSchema.set('toObject', {
   virtuals: true,
   versionKey: false,
 });
+
 userSchema.set('toJSON', {
   virtuals: true,
   versionKey: false,
 });
-// Apply passportLocalMongoose plugin
-userSchema.plugin(passportLocalMongoose);
+
+// Apply passportLocalMongoose plugin with email as the username field
+userSchema.plugin(passportLocalMongoose, {
+  usernameField: 'email',
+});
 
 module.exports = mongoose.model('User', userSchema);

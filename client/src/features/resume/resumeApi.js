@@ -13,6 +13,9 @@ export const getResumeById = async id => {
 };
 
 export const updateResumeData = async (id, updatedData) => {
-  console.log('id-endpoint', id);
   return await resumeApi.put(`/${id}`, updatedData);
 };
+
+export const deleteResumeById = async id => {
+  return await resumeApi.delete(`/${id}`);
+}

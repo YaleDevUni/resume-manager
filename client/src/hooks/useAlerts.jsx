@@ -69,7 +69,7 @@ const Alert = ({ message, type }) => {
   };
   return (
     <div
-      className={`${colorVariants[type]} px-4 py-3 rounded m-3 relative w-fit ml-auto mr-0`}
+      className={`${colorVariants[type]} text-sm px-3 py-2 rounded m-3 relative w-fit ml-auto mr-0`}
       role="alert"
     >
       <strong className="block sm:inline">{message}</strong>
@@ -79,7 +79,7 @@ const Alert = ({ message, type }) => {
 
 const AlertContainer = ({ alerts }) => {
   return (
-    <div className="absolute top-0 right-0 p-5 space-y-2 z-10">
+    <div className="absolute top-0 right-0 p-3 space-y-2 z-10">
       {alerts.map(alert => (
         <div
           key={alert.timestamp}

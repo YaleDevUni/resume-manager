@@ -17,6 +17,8 @@ import {
   deleteRecruitmentAsync,
   setRecruitmentSync,
 } from '../../features/recruitment/recruitSlice';
+import { fetchResumes } from '../../features/resume/resumeSlice';
+import useCustomSearchParams from '../../hooks/SearchParamService';
 
 const RecruimentSetting = () => {
   // Local state
@@ -27,6 +29,8 @@ const RecruimentSetting = () => {
     title: null,
     position: null,
   }); // State to toggle the modify recruitment form
+  const { getParamsObject } = useCustomSearchParams();
+
   // Refs
   const prevRecruitment = useRef(null); // Ref to hold the previous recruitment data
   // Custom hooks
@@ -47,8 +51,11 @@ const RecruimentSetting = () => {
     setLocalStorageStateValue: setCurrentPage,
   } = useLocalStorage('recruitmentsCurrentPage', 1, user.userId);
 
+  // fetch state again to update the list from previous page
+  useEffect(() => {
+    dispatch(fetchResumes(getParamsObject())).unwrap();
+  }, [recruitmentDeleted]);
   /** Handlers */
-
   const handleAddNew = async () => {
     if (recruitmentId.trim()) {
       const recruitmentData = {
@@ -143,29 +150,29 @@ const RecruimentSetting = () => {
     setRecruitmentDeleted(false); // Reset the recruitment deleted state
   }, [recruitmentAdded, recruitmentDeleted]);
 
-  // useEffect(() => {
-  //   setModifyRecruitment({ title: null, position: null }); // Reset the modify recruitment form
-  // }, [recruitmentDeleted]);
+  useEffect(() => {
+    setModifyRecruitment({ title: null, position: null }); // Reset the modify recruitment form
+  }, [recruitmentDeleted]);
 
   return (
     <>
       <AlertContainer alerts={alerts} />{' '}
-      <div className="relative w-1/2 m-2 p-2 border shadow-[0_0_6px_rgba(0,0,0,0.2)] rounded-lg">
+      <div className="relative w-1/2 m-2 p-2 border  rounded-lg">
         <div className="flex flex-row justify-between">
-          <div className="text-3xl">Recruitment Setting</div>
+          <div className="text-xl">Recruitment Setting</div>
           <div className="flex flex-row gap-1">
             <input
-              className="p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)]"
+              className="p-1 border rounded-md "
               type="text"
               id="recruitmentId"
               name="recruitmentId"
               placeholder="Recruitment Title"
-              value={recruitmentId}
+              value={recruitmentId || ''}
               onChange={e => setRecruitmentId(e.target.value.trim())} // Update state on input change
               onKeyDown={handleKeyDown}
             />
             <Button
-              className="font-bold"
+              className="font-bold text-xs"
               onClick={handleAddNew}
               disabled={status === 'loading'}
             >
@@ -173,13 +180,13 @@ const RecruimentSetting = () => {
             </Button>
           </div>
         </div>
-        <div className="font-bold text-xl  flex flex-row justify-between">
+        <div className="font-bold  flex flex-row justify-between">
           <div className=" "> Select Recruitment ID</div>
         </div>
 
         <table className="w-full">
           <thead>
-            <tr className=" bg-black text-white">
+            <tr className=" bg-black text-white text-xs">
               <th className=" text-start">Recruitment ID</th>
               <th className=" text-start">Position</th>
               <th className=" text-start">Created At</th>
@@ -192,9 +199,11 @@ const RecruimentSetting = () => {
               <tr
                 onClick={() => handleSelectRecruitment(recruit)}
                 key={recruit._id}
-                className={` ${
-                  index % 2 === 0 ? 'bg-gray-100' : 'bg-gray-200'
-                }  cursor-pointer ${
+                className={`
+                  text-xs
+                  ${
+                    index % 2 === 0 ? 'bg-gray-100' : 'bg-gray-200'
+                  }  cursor-pointer ${
                   recruit.id === recruitment?.id
                     ? 'bg-slate-400'
                     : 'hover:bg-gray-300 '
@@ -230,13 +239,13 @@ const RecruimentSetting = () => {
           handlePageChange={handlePageChange}
         />
         <hr className="my-4" />
-        <div className=" flex flex-row items-center flex-wrap justify-center text-xl mb-4  gap-3">
+        <div className="text-xs flex flex-row items-center flex-wrap justify-center mb-4  gap-2">
           <div>Title: </div>
           <div className=" font-bold">
             <input
               type="text"
-              className="p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)]"
-              value={modifyRecruitment.title}
+              className="p-1 border rounded-md "
+              value={modifyRecruitment.title || ''}
               onChange={e =>
                 setModifyRecruitment({
                   title: e.target.value,
@@ -249,8 +258,8 @@ const RecruimentSetting = () => {
           <div>Position: </div>
           <input
             type="text"
-            className="p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] font-bold"
-            value={modifyRecruitment.position}
+            className="p-1 border rounded-md  font-bold"
+            value={modifyRecruitment.position || ''}
             onChange={e =>
               setModifyRecruitment({
                 position: e.target.value,
@@ -259,6 +268,7 @@ const RecruimentSetting = () => {
             }
             placeholder="Set Position"
           />
+          <div className="w-4"></div>
           <Button
             onClick={() => {
               setModifyRecruitment({
@@ -266,12 +276,12 @@ const RecruimentSetting = () => {
                 position: prevRecruitment.current.position,
               });
             }}
-            className={'hover:bg-red-300'}
+            className={'p-1 hover:bg-red-300'}
           >
-            <GrPowerReset className=" h-6 w-6" />
+            <GrPowerReset className=" h-4 w-4" />
           </Button>
           <Button
-            className={'hover:bg-green-300'}
+            className={'p-1 hover:bg-green-300'}
             onClick={async () => {
               await handleUpdate({
                 title: modifyRecruitment.title,
@@ -286,12 +296,10 @@ const RecruimentSetting = () => {
               );
             }}
           >
-            <GiConfirmed className=" h-6 w-6" />
+            <GiConfirmed className=" h-4 w-4" />
           </Button>
         </div>
-        <div className=" text-xl mb-4">
-          Add Required Skills for the position
-        </div>
+        <div className=" mb-4">Add Required Skills for the position</div>
         <SearchBar
           callBackAdd={selectedSkill => {
             if (!recruitment._id) {
@@ -303,7 +311,9 @@ const RecruimentSetting = () => {
             });
           }}
         />
-        <div className=" mt-2 text-red-500">Click to delete a skill</div>
+        <div className=" text-xs mt-2 text-red-500">
+          Click to delete a skill
+        </div>
         <div className="flex flex-row flex-wrap gap-1">
           {recruitment?.skillsToMatch?.map((skill, index) => (
             <Button

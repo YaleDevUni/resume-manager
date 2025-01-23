@@ -5,7 +5,7 @@ const Button = ({ onClick, children, className, disabled = false }) => {
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`border shadow-[0_0_6px_rgba(0,0,0,0.2)] rounded-lg p-2 ${className}`}
+      className={`border rounded-lg p-1 ${className}`}
     >
       {children}
     </button>

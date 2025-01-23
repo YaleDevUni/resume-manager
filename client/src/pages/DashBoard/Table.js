@@ -2,6 +2,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAlerts, AlertContainer } from '../../hooks/useAlerts';
 import SearchBarWithTag from './SearchBarWithTag';
+import Pagination from '../../components/Pagination';
+import useCustomSearchParams from '../../hooks/SearchParamService';
 // import React
 import React from 'react';
 import {
@@ -9,6 +11,7 @@ import {
   fetchResumeById,
   setResumeList,
   updateResumeById,
+  removeResumeById,
 } from '../../features/resume/resumeSlice';
 // Icons
 import { MdOutlineStarBorder } from 'react-icons/md';
@@ -27,9 +30,15 @@ const Table = () => {
   // Redux selectors
   const resumeList = useSelector(state => state.resume.resumes);
   const resume = useSelector(state => state.resume.resume);
+  const pagination = useSelector(state => state.resume.resumes.pagination);
+  const [currentPage, setCurrentPage] = useState(1);
+  const {
+    searchParams,
+    getParamsObject,
+    appendSearchParams,
+    removeSearchParams,
+  } = useCustomSearchParams();
 
-  // Search params
-  const [searchParams, setSearchParams] = useSearchParams();
   // Custom Dependency that replace resumeId
   const filterResumeQuery = useMemo(() => {
     let stringQuery = searchParams.toString();
@@ -50,7 +59,16 @@ const Table = () => {
     },
     [dispatch, addAlert]
   );
-
+  const handleDelete = async selectedResume => {
+    if (window.confirm('Are you sure you want to delete this resume?')) {
+      try {
+        await dispatch(removeResumeById(selectedResume._id)).unwrap();
+        addAlert('Resume deleted successfully', 'success');
+      } catch (error) {
+        addAlert(error, 'error');
+      }
+    }
+  };
   const handlePreferredClick = async selectedResume => {
     try {
       await dispatch(
@@ -74,7 +92,6 @@ const Table = () => {
     }
   };
   const handleResumeClick = async selectedResume => {
-    console.log('am I');
     try {
       await dispatch(fetchResumeById(selectedResume._id)).unwrap();
       dispatch(
@@ -85,50 +102,6 @@ const Table = () => {
         )
       );
       // set search params but preserve other params
-      const existingSkills = searchParams.getAll('skills');
-      const existingApplicants = searchParams.getAll('applicants');
-      const existingRecruitments = searchParams.getAll('recruitments');
-      setSearchParams({
-        recruitments: existingRecruitments,
-        applicants: existingApplicants,
-        skills: existingSkills,
-        resumeId: selectedResume._id,
-      });
-      try {
-        // Fetch the PDF file URL or path
-
-        // Clear the container before rendering the new PDF
-        pdfContainerRef.current.innerHTML = '';
-
-        const pdf = await pdfjsLib.getDocument({
-          data: resume.data.resumePDF.data.data,
-        }).promise;
-        const page = await pdf.getPage(1); // Display the first page, you can change the page number as needed
-
-        const scale = 2;
-        const viewport = page.getViewport({ scale });
-
-        // Prepare canvas using PDF page dimensions
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        pdfContainerRef.current.appendChild(canvas);
-
-        // Render PDF page into canvas context
-        const renderContext = {
-          canvasContext: context,
-          viewport: viewport,
-          
-        };
-
-        await page.render(renderContext).promise;
-      } catch (error) {
-        console.error('Error rendering PDF:', error);
-        console.log(resume.data.resumePDF);
-        addAlert('Error displaying PDF', 'error');
-      }
     } catch (error) {
       addAlert(error, 'error');
     }
@@ -136,20 +109,11 @@ const Table = () => {
 
   // Fetch resumes list on page load and when search params change
   useEffect(() => {
-    const applicantsParam = searchParams.getAll('applicants');
-    const recruitmentParam = searchParams.getAll('recruitments');
-    const skillParam = searchParams.getAll('skills');
-    let params = {};
-    if (applicantsParam || recruitmentParam || skillParam) {
-      params = {
-        applicants: applicantsParam,
-        recruitments: recruitmentParam,
-        skills: skillParam,
-      };
+    fetchResumesList(getParamsObject());
+    //if pagination.totalPages is less than currentPage, set currentPage to 1
+    if (pagination.totalPages < pagination.currentPage) {
+      appendSearchParams('currentPage', 1);
     }
-    // add pagination to the params
-    params = { ...params, page: 1, limit: 40 };
-    fetchResumesList(params);
   }, [filterResumeQuery, fetchResumesList]);
 
   // Set the default selected resume
@@ -181,11 +145,11 @@ const Table = () => {
           <div className="border shadow-[0_0_6px_rgba(0,0,0,0.2)] h-full rounded-lg">
             <div className="overflow-auto h-full rounded-lg">
               <table className="w-full text-start rounded-lg">
-                <thead className=" h-14 bg-black text-white">
-                  <tr className="sticky top-0 bg-black">
+                <thead className=" text-xs h-8 bg-gray-800 text-white">
+                  <tr className="sticky top-0 bg-gray-800">
                     <th className="text-start">Recruitment Title</th>
                     <th className="text-start">Position</th>
-                    <th className="text-start">Applicant</th>
+                    <th className="text-start">File Name</th>
                     <th className="text-start">Rating</th>
                     <th className="text-start">Status</th>
                     <th className="text-start">Reviewed</th>
@@ -195,7 +159,7 @@ const Table = () => {
                     <th className="text-start"></th>
                   </tr>
                 </thead>
-                <tbody className="table-fixed ">
+                <tbody className="table-fixed text-xs ">
                   {Array.isArray(resumeList.data) &&
                     resumeList?.data?.map((resumeInTable, index) => (
                       <tr
@@ -211,14 +175,14 @@ const Table = () => {
                         }}
                       >
                         <td>
-                          {resumeInTable.recruitment.title}
+                          {resumeInTable?.recruitment?.title}
                           {/* {resume.data?._id} */}
                         </td>
-                        <td>{resumeInTable.recruitment.position}</td>
-                        <td>{capitalizeWords(resumeInTable.name)}</td>
-                        <td>{resumeInTable.rating}</td>
-                        <td>{resumeInTable.status}</td>
-                        <td>{resumeInTable.resumeViewed ? 'yes' : 'No'}</td>
+                        <td>{resumeInTable?.recruitment?.position}</td>
+                        <td>{resumeInTable?.originalFileName}</td>
+                        <td>{resumeInTable?.rating}</td>
+                        <td>{resumeInTable?.status}</td>
+                        <td>{resumeInTable?.resumeViewed ? 'yes' : 'No'}</td>
                         <td
                           onClick={e => {
                             e.stopPropagation();
@@ -233,12 +197,11 @@ const Table = () => {
                           )}
                         </td>
                         <td
-                          className=" hover:bg-red-500 hover:fill-white
-                     justify-center flex flex-row border-l-2 border-dashed border-gray-400"
+                          className="hover:bg-red-500 hover:text-white hover:fill-white
+    border-l text-center border-gray-400"
                           onClick={e => {
                             e.stopPropagation();
-                            console.log('delete');
-                            // handleDelete(recruit);
+                            handleDelete(resumeInTable);
                           }}
                         >
                           <button>
@@ -253,9 +216,15 @@ const Table = () => {
               </table>
               <div className="h-6"></div>
               <div className="  h-6 sticky bottom-0 bg-white text-center">
-                {'<'} 1 2 3 4 5 {'>'}
+                <Pagination
+                  totalPages={pagination.totalPages}
+                  currentPage={pagination.currentPage}
+                  handlePageChange={page => {
+                    appendSearchParams('currentPage', page);
+                  }}
+                />
               </div>
-              <div className="w-full" ref={pdfContainerRef} />
+              {/* <div className="w-full" ref={pdfContainerRef} /> */}
             </div>
           </div>
         </div>

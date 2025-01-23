@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getSkills } from '../services/SkillService';
 import { searchRecruitments } from '../services/RecruitApiService';
-import { searchApplicants } from '../services/ResumeApiService';
 
 const debounce = (func, delay) => {
   let timeoutId;
@@ -16,13 +15,16 @@ const SearchBar = ({
   className,
   callBackAdd = () => {},
 }) => {
+  // States
   const [query, setQuery] = useState('');
   const [mockQuery, setMockQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [list, setList] = useState([]);
-  const [highlightIndex, setHighlightIndex] = useState(-1); // Track highlighted suggestion
+  const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [isFocused, setIsFocused] = useState(false);
+  const [isMouseDown, setIsMouseDown] = useState(false);
 
-  // useCallBack functions
+  // Data fetching
   const fetchRecruitments = useCallback(
     debounce(async query => {
       try {
@@ -30,57 +32,60 @@ const SearchBar = ({
         const recruitmentsList = recruitmentsObjList.map(r => r.title);
         setList(recruitmentsList);
       } catch (error) {
-        console.error('Error fetching recruitments in useEffect:', error);
-        setList([]); // Optionally handle the error by setting an empty list
+        console.error('Error fetching recruitments:', error);
+        setList([]);
       }
     }, 150),
     []
   );
 
-  const fetchApplicants = useCallback(
-    debounce(async query => {
-      try {
-        const applicantsObjList = await searchApplicants(query);
-        const applicantsList = applicantsObjList.map(a => a.name);
-        setList(applicantsList);
-      } catch (error) {
-        console.error('Error fetching applicants in useEffect:', error);
-        setList([]); // Optionally handle the error by setting an empty list
-      }
-    }, 150),
-    []
-  );
-
-  // Event handlers
-  const handleChange = e => {
-    // trim for leading and trailing spaces and special characters when searching for skills, otherwise only special characters with out trimming
-    const value =
-      queryType === 'skills'
-        ? e.target.value.trim().replace(/[^a-zA-Z0-9 ]/g, '')
-        : e.target.value.replace(/[^a-zA-Z0-9 ]/g, '');
-    setQuery(value);
-    setMockQuery('');
-    setHighlightIndex(-1); // Reset highlight when query changes
-  };
-
+  // UI Event Handlers
   const handleSelect = suggestion => {
     setQuery(suggestion);
     setSuggestions([]);
     setQuery('');
     setMockQuery('');
     callBackAdd(suggestion);
-    setHighlightIndex(-1); // Reset highlight after selection
+    setHighlightIndex(-1);
+    setIsFocused(false);
+  };
+
+  const handleChange = async e => {
+    let value;
+    switch (queryType) {
+      case 'skills':
+        value = e.target.value.trim().replace(/[^a-zA-Z0-9 ]/g, '');
+        break;
+      case 'recruitments':
+        value = e.target.value.replace(/[^a-zA-Z0-9 ]/g, '');
+        break;
+      default:
+        value = e.target.value;
+        break;
+    }
+    setQuery(value);
+    setMockQuery('');
+    setHighlightIndex(-1);
+
+    if (value) {
+      switch (queryType) {
+        case 'skills':
+          const skillsList = await getSkills();
+          setList(skillsList);
+          break;
+        case 'recruitments':
+          fetchRecruitments(value);
+          break;
+      }
+    }
   };
 
   const handleKeyDown = e => {
     if (e.key === 'Enter') {
-      // return if no input
       if (!query) return;
       if (highlightIndex >= 0 && suggestions.length > 0) {
-        // If there is a highlighted suggestion, select it
         handleSelect(suggestions[highlightIndex]);
       } else {
-        // If no suggestion is highlighted, add the current query as a custom skill
         handleSelect(query);
       }
     }
@@ -106,47 +111,45 @@ const SearchBar = ({
     }
   };
 
-  // useEffects
-  useEffect(() => {
-    const fetchSkills = async () => {
-      try {
-        const skillsList = await getSkills();
-        setList(skillsList);
-      } catch (error) {
-        console.error('Error fetching list in useEffect:', error);
-        setList([]); // Optionally handle the error by setting an empty list list
+  const handleBlur = () => {
+    if (!isMouseDown) {
+      setTimeout(() => {
+        setIsFocused(false);
+        setHighlightIndex(-1);
+        setSuggestions([]);
+      }, 100);
+    }
+  };
+
+  const handleMouseDown = () => {
+    setIsMouseDown(true);
+  };
+
+  const handleMouseUp = () => {
+    setIsMouseDown(false);
+  };
+
+  const handleFocus = async () => {
+    setIsFocused(true);
+    try {
+      switch (queryType) {
+        case 'skills':
+          const skillsList = await getSkills();
+          setList(skillsList);
+          break;
+        case 'recruitments':
+          const recruitmentsObjList = await searchRecruitments('');
+          const recruitmentsList = recruitmentsObjList.map(r => r.title);
+          setList(recruitmentsList);
+          break;
       }
-    };
-    setList([]);
-    if (!query) return;
-    switch (queryType) {
-      case 'skills':
-        fetchSkills();
-        break;
-      case 'applicants':
-        fetchApplicants(query);
-        break;
-      case 'recruitments':
-        fetchRecruitments(query);
-        break;
-      default:
-        console.error('Unknown queryType:', queryType);
+    } catch (error) {
+      console.error('Error fetching initial data:', error);
+      setList([]);
     }
-  }, [queryType, query, fetchApplicants, fetchRecruitments]);
+  };
 
-  // update the list of suggestions when the query changes
-  useEffect(() => {
-    if (query.length > 0) {
-      const filteredSuggestions = list.filter(skill =>
-        skill.toLowerCase().startsWith(query.toLowerCase())
-      );
-      setSuggestions([query, ...filteredSuggestions]);
-    } else {
-      setSuggestions([]);
-    }
-  }, [list]); // Add query to the dependency array
-
-  // Helper function to scroll the highlighted item into view
+  // Helper Functions
   const scrollIntoView = index => {
     const list = document.querySelector('.search-bar ul');
     const item = list.children[index];
@@ -155,27 +158,39 @@ const SearchBar = ({
     }
   };
 
-  const handleBlur = e => {
-    // Delay closing the suggestions to allow time for a click
-    setTimeout(() => {
-      setSuggestions([]);
-      setHighlightIndex(-1);
-    }, 100);
-  };
+  // Effects
+  useEffect(() => {
+    if (isFocused) {
+      if (query.length > 0) {
+        const filteredSuggestions = list.filter(item =>
+          item.toLowerCase().startsWith(query.toLowerCase())
+        );
+        setSuggestions([query, ...filteredSuggestions]);
+      } else {
+        setSuggestions(list);
+      }
+    }
+  }, [list, query, isFocused]);
 
+  // Render
   return (
     <div className={`search-bar relative ${className}`}>
       <input
         type="text"
-        value={mockQuery ? mockQuery : query}
+        value={mockQuery ? mockQuery : query ? query : ''}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder="Search list..."
         onBlur={handleBlur}
-        className="border p-2 w-full rounded-md bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        onFocus={handleFocus}
+        className="text-xs border p-2 w-full rounded-md bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
       {suggestions.length > 0 && (
-        <ul className="absolute z-10 border mt-2 w-full bg-white rounded-md shadow-lg max-h-96 overflow-y-auto">
+        <ul
+          className="text-xs absolute z-10 border mt-2 w-full bg-white rounded-md shadow-lg max-h-96 overflow-y-auto"
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+        >
           {suggestions.map((suggestion, index) => (
             <li
               key={index}

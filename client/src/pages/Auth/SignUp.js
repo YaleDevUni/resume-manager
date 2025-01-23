@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { register } from '../../features/user/userSlice';
 import { useAlerts, AlertContainer } from '../../hooks/useAlerts';
+
 const SignUp = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [jumpToLogin, setJumpToLogin] = useState(false);
@@ -15,22 +16,19 @@ const SignUp = () => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
   const handleSubmit = async e => {
     e.preventDefault();
-
     try {
-      // check if password contains spaces and invalid characters
       if (/\s/.test(password))
         throw new Error('Password cannot contain spaces');
       if (password !== confirmPassword)
         throw new Error('Passwords do not match');
       setPreventPress(true);
-      await dispatch(register({ username, password })).unwrap();
+      await dispatch(register({ email, password })).unwrap();
       addAlert('Registration successful', 'success', 1500, () => {
-        // NOTE: Link is not working as expected because of the lifecycle of the component.
-        // You have to trigger the callback in the parent component of this hook.
         setPreventPress(false);
-        setJumpToLogin(true);
+        navigate('/verification-pending');
       });
     } catch (err) {
       setPreventPress(false);
@@ -40,52 +38,47 @@ const SignUp = () => {
 
   useEffect(() => {
     if (jumpToLogin) {
-      navigate('/login', { state: { username } });
+      navigate('/login', { state: { email } });
     }
   }, [jumpToLogin, navigate]);
 
-  //  // Reset error alert if any on input change
-  //  const handleChange = setter => e => {
-  //    setter(e.target.value);
-  //    if (error) dispatch(resetError());
-  //  };
   return (
     <div className="w-screen  mt-36  ">
       <AlertContainer alerts={alerts} />
-      <div className=" w-1/2 mx-auto flex flex-col items-center border rounded-lg shadow-[0_0_10px_rgba(0,0,0,0.3)] p-16 px-4 pb-8">
-        <p className=" text-2xl font-bold  mb-6">Welcome to Resume Manger</p>
-        <form className=" w-11/12" id="login-form">
+      <div className=" w-1/3 mx-auto flex flex-col items-center border rounded-lg shadow-[0_0_10px_rgba(0,0,0,0.3)] p-16 px-4 pb-8">
+        <p className=" font-bold  mb-6">Welcome to Resume Manger</p>
+        <form className=" w-11/12 text-xs" id="login-form">
           <input
-            type="text"
-            placeholder="username"
-            id="username"
-            autoComplete="on"
-            className="border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] w-full p-3 mb-6 "
-            value={username}
-            onChange={e => setUsername(e.target.value.trim())}
-          ></input>
+            type="email"
+            placeholder="email"
+            id="email"
+            autoComplete="email"
+            className="border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] w-full p-2 mb-4 "
+            value={email}
+            onChange={e => setEmail(e.target.value.trim())}
+          />
           <input
             id="password"
             type="password"
             placeholder="password"
             autoComplete="new-password"
-            className="border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] w-full p-3 mb-6 "
+            className="border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] w-full p-2 mb-4 "
             value={password}
             onChange={e => setPassword(e.target.value.trim())}
-          ></input>
+          />
           <input
             id="confirm-password"
             type="password"
             placeholder="confirm-password"
             autoComplete="new-password"
-            className="border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] w-full p-3 mb-6 "
+            className="border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] w-full p-2 mb-4 "
             value={confirmPassword}
             onChange={e => setConfirmPassword(e.target.value)}
-          ></input>
+          />
         </form>
         <div className=" w-11/12 flex flex-row justify-end mb-6">
           <button
-            className={`border rounded-md p-3 shadow-[0_0_10px_rgba(0,0,0,0.1)]  w-32 ${
+            className={`border text-sm rounded-md p-2 shadow-[0_0_10px_rgba(0,0,0,0.1)]  w-28 ${
               preventPress ? ` text-gray-500 cursor-wait` : `hover:bg-gray-200`
             }`}
             onClick={preventPress ? () => {} : handleSubmit}
@@ -94,7 +87,7 @@ const SignUp = () => {
           </button>
         </div>
         <div>
-          <Link to="/login" className=" text-xl">
+          <Link to="/login" className="">
             Do you have an account?{' '}
             <span className=" text-blue-600">Login Here</span>{' '}
           </Link>

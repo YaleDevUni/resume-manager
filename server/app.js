@@ -39,7 +39,11 @@ const authLimiter = rateLimit({
 const corsOptions = {
   origin: isDevelopment
     ? 'http://localhost:3000'
-    : ['http://localhost:3000', 'http://localhost:5001'],
+    : [
+        'http://localhost:3000',
+        'http://localhost:5001',
+        'http://ec2-3-107-26-238.ap-southeast-2.compute.amazonaws.com/',
+      ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],

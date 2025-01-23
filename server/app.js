@@ -20,19 +20,30 @@ const rateLimit = require('express-rate-limit');
 /** rate limit config */
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // 100 requests per windowMs
+  max: 1000,
   message: {
     success: false,
     message: 'Too many requests, please try again later',
   },
+  keyGenerator: function (req) {
+    return req.headers['x-forwarded-for']?.split(',')[0] || req.ip;
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per windowMs
+  max: 5,
   message: {
     success: false,
     message: 'Too many login attempts, please try again after 15 minutes',
   },
+  keyGenerator: function (req) {
+    return req.headers['x-forwarded-for']?.split(',')[0] || req.ip;
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 /** cors config */
@@ -48,7 +59,9 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
+/** policies */
 app.use(cors(corsOptions));
+app.set('trust proxy', 1);
 
 /** Enviroment variables */
 require('dotenv').config();

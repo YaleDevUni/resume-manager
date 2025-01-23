@@ -92,6 +92,15 @@ app.use(logger);
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(express.raw({ limit: '100mb' }));
 
+// health check
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+app.get('/', (req, res) => {
+  res.status(200).send('Welcome to the server');
+});
+
+
 /** rate limit middleware */
 app.use('/api', apiLimiter);
 app.use('/api/auth/login', authLimiter);
@@ -103,13 +112,6 @@ app.use('/api', demoUserMiddleware, recruitRoutes);
 app.use('/api', demoUserMiddleware, skillRoutes);
 app.use('/api', authMiddleware, demoUserMiddleware, resumeRoutes);
 
-// health check
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
-app.get('/', (req, res) => {
-  res.status(200).send('Welcome to the server');
-});
 
 const PORT = process.env.PORT || (isDevelopment ? 3003 : 5000);
 

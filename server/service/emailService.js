@@ -1,8 +1,9 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
+
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  secure: true, // true for 465, false for other ports
+  secure: true,
   auth: {
     user: process.env.SERVER_EMAIL,
     pass: process.env.EMAIL_PASSWORD,
@@ -12,18 +13,17 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const sendVerificationEmail = async (email, verificationToken) => {
-  const verificationUrl = `${process.env.SERVER_URL}/api/auth/verify/${verificationToken}`;
+const sendVerificationEmail = async (email, verificationCode) => {
   const mailOptions = {
     from: process.env.SERVER_EMAIL,
     to: email,
     subject: 'Verify Your Email',
     html: `
-      <h1>Email Verification</h1>
-      <p>Please click the link below to verify your email address:</p>
-      <a href="${verificationUrl}">Verify Email</a>
-      <p>This link will expire in 24 hours.</p>
-    `,
+     <h1>Email Verification</h1>
+     <p>Your verification code is: <strong>${verificationCode}</strong></p>
+     <p>This code will expire in 10 minutes.</p>
+     <p>If you didn't request this, please ignore this email.</p>
+   `,
   };
 
   try {
@@ -34,20 +34,18 @@ const sendVerificationEmail = async (email, verificationToken) => {
     return false;
   }
 };
-const sendPasswordResetEmail = async (email, resetToken) => {
-  const resetUrl = `http://localhost:3000/reset-password/${resetToken}`;
 
+const sendPasswordResetEmail = async (email, resetCode) => {
   const mailOptions = {
     from: process.env.SERVER_EMAIL,
     to: email,
     subject: 'Reset Your Password',
     html: `
-      <h1>Password Reset</h1>
-      <p>You requested a password reset. Click the link below to reset your password:</p>
-      <a href="${resetUrl}">Reset Password</a>
-      <p>This link will expire in 1 hour.</p>
-      <p>If you didn't request this, please ignore this email.</p>
-    `,
+     <h1>Password Reset</h1>
+     <p>Your password reset code is: <strong>${resetCode}</strong></p>
+     <p>This code will expire in 10 minutes.</p>
+     <p>If you didn't request this, please ignore this email.</p>
+   `,
   };
 
   try {

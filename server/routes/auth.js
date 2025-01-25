@@ -1,38 +1,23 @@
-//auth.js
 const express = require('express');
 const router = express.Router();
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const authMiddleware = require('../middlewares/authMiddleware');
-const crypto = require('crypto');
 const demoUserMiddleware = require('../middlewares/demoUserMiddleware');
-const path = require('path');
 const {
   sendVerificationEmail,
   sendPasswordResetEmail,
 } = require('../service/emailService');
 require('dotenv').config();
 
-// Helper functions for validation
-const isValidEmail = email => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
+const isValidEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const isValidPassword = password =>
+  /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(password);
 
-const isValidPassword = password => {
-  // At least 8 characters long
-  // Contains at least one letter
-  // Contains at least one number
-  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
-  return passwordRegex.test(password);
-};
-
-// Registration Route
 router.post('/auth/register', async (req, res) => {
   const { password, email } = req.body;
 
-  // Email validation
   if (!email || !isValidEmail(email)) {
     return res.status(400).json({
       field: 'email',
@@ -40,7 +25,6 @@ router.post('/auth/register', async (req, res) => {
     });
   }
 
-  // Password validation
   if (!password || !isValidPassword(password)) {
     return res.status(400).json({
       field: 'password',
@@ -50,21 +34,20 @@ router.post('/auth/register', async (req, res) => {
   }
 
   try {
-    // Generate verification token
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const verificationCode = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString();
+    const verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     const user = new User({
       email,
-      verificationToken,
-      verificationTokenExpires,
+      verificationCode: verificationCode,
+      verificationCodeExpires: verificationCodeExpires,
       isVerified: false,
     });
 
     await User.register(user, password);
-
-    // Send verification email
-    const emailSent = await sendVerificationEmail(email, verificationToken);
+    const emailSent = await sendVerificationEmail(email, verificationCode);
 
     if (!emailSent) {
       return res.status(500).json({
@@ -75,7 +58,7 @@ router.post('/auth/register', async (req, res) => {
 
     res.status(201).json({
       message:
-        'Registration successful. Please check your email to verify your account.',
+        'Registration successful. Please check your email for verification code.',
     });
   } catch (err) {
     if (err.name === 'MongoError' && err.code === 11000) {
@@ -90,34 +73,70 @@ router.post('/auth/register', async (req, res) => {
     });
   }
 });
-
-// Email verification route
-router.get('/auth/verify/:token', async (req, res) => {
+router.post('/auth/resend-verification', async (req, res) => {
   try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ message: 'Email already verified' });
+    }
+
+    const verificationCode = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString();
+    const verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+    user.verificationCode = verificationCode;
+    user.verificationCodeExpires = verificationCodeExpires;
+    await user.save();
+
+    const emailSent = await sendVerificationEmail(email, verificationCode);
+
+    if (!emailSent) {
+      return res
+        .status(500)
+        .json({ message: 'Failed to send verification email' });
+    }
+
+    res.json({ message: 'Verification code sent successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error sending verification code' });
+  }
+});
+router.post('/auth/verify', async (req, res) => {
+  try {
+    const { email, code } = req.body;
     const user = await User.findOne({
-      verificationToken: req.params.token,
-      verificationTokenExpires: { $gt: Date.now() },
+      email,
+      verificationCode: code,
+      verificationCodeExpires: { $gt: Date.now() },
     });
 
     if (!user) {
       return res.status(400).json({
-        message: 'Invalid or expired verification token',
+        message: 'Invalid or expired verification code',
       });
     }
 
     user.isVerified = true;
-    user.verificationToken = undefined;
-    user.verificationTokenExpires = undefined;
+    user.verificationCode = undefined;
+    user.verificationCodeExpires = undefined;
     await user.save();
 
-    // Redirect to frontend with success message
-    res.redirect(`${process.env.FRONTEND_URL}/verification-success`);
+    res.json({ message: 'Email verified successfully' });
   } catch (error) {
+    console.log('Error verifying email:', error);
     res.status(500).json({
       message: 'Error verifying email',
     });
   }
 });
+
 router.post('/auth/forgot-password', demoUserMiddleware, async (req, res) => {
   try {
     const { email } = req.body;
@@ -127,20 +146,52 @@ router.post('/auth/forgot-password', demoUserMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenExpires = Date.now() + 3600000; // 1 hour
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const resetCodeExpires = Date.now() + 600000; // 10 minutes
 
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = resetTokenExpires;
+    user.resetPasswordToken = resetCode;
+    user.resetPasswordExpires = resetCodeExpires;
     await user.save();
 
-    await sendPasswordResetEmail(email, resetToken);
-
-    res.json({ message: 'Password reset email sent' });
+    await sendPasswordResetEmail(email, resetCode);
+    res.json({ message: 'Password reset code sent' });
   } catch (error) {
-    res.status(500).json({ message: 'Error sending reset email' });
+    res.status(500).json({ message: 'Error sending reset code' });
   }
 });
+
+router.post('/auth/reset-password', demoUserMiddleware, async (req, res) => {
+  try {
+    const { code, password, email } = req.body;
+    console.log('code', code, 'password', password, 'email', email);
+    const user = await User.findOne({
+      email,
+      resetPasswordToken: code,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired reset code' });
+    }
+
+    if (!isValidPassword(password)) {
+      return res.status(400).json({
+        message:
+          'Password must be at least 8 characters long and contain at least one letter and one number',
+      });
+    }
+
+    await user.setPassword(password);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.json({ message: 'Password reset successful' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error resetting password' });
+  }
+});
+
 router.post(
   '/auth/change-password',
   demoUserMiddleware,
@@ -164,7 +215,6 @@ router.post(
             });
           }
 
-          // Password validation for new password
           if (!isValidPassword(newPassword)) {
             return res.status(400).json({
               message:
@@ -185,32 +235,9 @@ router.post(
   }
 );
 
-router.post('/auth/reset-password', demoUserMiddleware, async (req, res) => {
-  try {
-    const { token, password } = req.body;
-    const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() },
-    });
-
-    if (!user) {
-      return res
-        .status(400)
-        .json({ message: 'Invalid or expired reset token' });
-    }
-
-    await user.setPassword(password);
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-    await user.save();
-
-    res.json({ message: 'Password reset successful' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error resetting password' });
-  }
-});
-// Update login route to check for verification
 router.post('/auth/login', (req, res, next) => {
+  const { email, password } = req.body;
+  console.log('email', email, 'password', password);
   passport.authenticate(
     'local',
     { session: false },
@@ -229,18 +256,17 @@ router.post('/auth/login', (req, res, next) => {
 
         if (!user.isVerified) {
           return res.status(401).json({
-            message: 'Please verify your email address before logging in',
+            message: 'VERIFY',
           });
         }
 
-        const expiresIn = '24h';
         const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-          expiresIn,
+          expiresIn: '24h',
         });
-        // remove hashed password from user object
+
         delete user._doc.hash;
         delete user._doc.salt;
-        res.json({ token, user, expiresIn });
+        res.json({ token, user, expiresIn: '24h' });
       } catch (error) {
         console.error('Unexpected error during login:', error);
         res.status(500).json({ message: 'Internal server error' });
@@ -260,9 +286,9 @@ router.get('/auth/me', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Error fetching user data' });
   }
 });
+
 router.post('/auth/validate-token', authMiddleware, (req, res) => {
   res.json({ valid: true, user: req.user });
 });
-
 
 module.exports = router;

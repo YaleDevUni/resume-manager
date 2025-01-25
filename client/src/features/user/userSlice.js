@@ -1,5 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { loginUser, registerUser, updateUser, logoutUser, getMe } from './userApi';
+import {
+  loginUser,
+  registerUser,
+  updateUser,
+  logoutUser,
+  getMe,
+} from './userApi';
 
 // Initial state that checks localStorage
 const initialState = {
@@ -8,7 +14,7 @@ const initialState = {
   isLoggedIn: !!localStorage.getItem('token'),
   token: localStorage.getItem('token'),
   error: null,
-  verificationStatus: 'idle'
+  verificationStatus: 'idle',
 };
 
 // Async actions
@@ -40,6 +46,9 @@ export const login = createAsyncThunk(
         if (error.response.data?.message?.includes('verify your email')) {
           return rejectWithValue('Please verify your email before logging in');
         }
+        if (error.response.data?.message === 'VERIFY') {
+          return rejectWithValue('VERIFY');
+        }
         return rejectWithValue('Invalid email or password');
       }
       return rejectWithValue(error.response?.data?.message || 'Unknown error');
@@ -54,19 +63,18 @@ export const fetchCurrentUser = createAsyncThunk(
       const response = await getMe();
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch user data');
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch user data'
+      );
     }
   }
 );
 
-export const logout = createAsyncThunk(
-  'user/logout',
-  async () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    return null;
-  }
-);
+export const logout = createAsyncThunk('user/logout', async () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  return null;
+});
 
 const userSlice = createSlice({
   name: 'user',

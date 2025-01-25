@@ -5,8 +5,8 @@ const userSchema = new mongoose.Schema(
   {
     email: { type: String, required: true, unique: true },
     isVerified: { type: Boolean, default: false },
-    verificationToken: String,
-    verificationTokenExpires: Date,
+    verificationCode: String,
+    verificationCodeExpires: Date,
     resetPasswordToken: String,
     resetPasswordExpires: Date,
   },
@@ -15,8 +15,8 @@ const userSchema = new mongoose.Schema(
       transform: (doc, ret) => {
         delete ret.hash;
         delete ret.salt;
-        delete ret.verificationToken;
-        delete ret.verificationTokenExpires;
+        delete ret.verificationCode;
+        delete ret.verificationCodeExpires;
         delete ret.resetPasswordToken;
         delete ret.resetPasswordExpires;
         return ret;
@@ -26,8 +26,8 @@ const userSchema = new mongoose.Schema(
       transform: (doc, ret) => {
         delete ret.hash;
         delete ret.salt;
-        delete ret.verificationToken;
-        delete ret.verificationTokenExpires;
+        delete ret.verificationCode;
+        delete ret.verificationCodeExpires;
         delete ret.resetPasswordToken;
         delete ret.resetPasswordExpires;
         return ret;

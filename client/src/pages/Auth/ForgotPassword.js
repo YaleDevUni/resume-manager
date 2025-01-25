@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAlerts, AlertContainer } from '../../hooks/useAlerts';
 import { forgotPassword } from '../../features/user/userApi';
 
@@ -6,6 +7,7 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { alerts, addAlert } = useAlerts();
+  const navigate = useNavigate();
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -13,11 +15,11 @@ const ForgotPassword = () => {
 
     try {
       await forgotPassword(email);
-      addAlert('Password reset link sent to your email', 'success');
-      setEmail('');
+      addAlert('Verification code sent to your email', 'success');
+      navigate('/reset-password', { state: { email } });
     } catch (error) {
       addAlert(
-        error.response?.data?.message || 'Failed to send reset link',
+        error.response?.data?.message || 'Failed to send verification code',
         'error'
       );
     } finally {
@@ -31,8 +33,8 @@ const ForgotPassword = () => {
       <div className="w-1/3 mx-auto flex flex-col items-center border rounded-lg shadow-[0_0_10px_rgba(0,0,0,0.3)] p-16 px-4 pb-8">
         <p className="font-bold mb-6">Reset Password</p>
         <p className="text-sm text-gray-600 mb-6 text-center">
-          Enter your email address and we'll send you a link to reset your
-          password.
+          Enter your email address and we'll send you a verification code to
+          reset your password.
         </p>
         <form className="w-11/12 text-xs" onSubmit={handleSubmit}>
           <input
@@ -51,7 +53,7 @@ const ForgotPassword = () => {
               }`}
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Sending...' : 'Send Reset Link'}
+              {isSubmitting ? 'Sending...' : 'Send Code'}
             </button>
           </div>
         </form>

@@ -28,7 +28,7 @@ const SignUp = () => {
       await dispatch(register({ email, password })).unwrap();
       addAlert('Registration successful', 'success', 1500, () => {
         setPreventPress(false);
-        navigate('/verification-pending');
+        navigate('/verification-pending', { state: { email } });
       });
     } catch (err) {
       setPreventPress(false);

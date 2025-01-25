@@ -4,11 +4,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { login } from '../../features/user/userSlice';
 import { useAlerts, AlertContainer } from '../../hooks/useAlerts';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
-
+import { resendVerification } from '../../features/user/userApi';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const { alerts, addAlert } = useAlerts();
   const { status, error } = useSelector(state => state.user);
   const dispatch = useDispatch();
@@ -25,13 +26,19 @@ const Login = () => {
       addAlert('Login successful', 'success');
       navigate('/dashboard', { state: { userInfo } });
     } catch (err) {
+      if (err === 'VERIFY') {
+        addAlert('Please verify your email to login. Redirecting....', 'error');
+        setIsVerifying(true);
+        await resendVerification(email);
+        return navigate('/verification-pending', { state: { email } });
+      }
       addAlert(err, 'error');
     }
   };
 
   const handleDemoLogin = e => {
     e.preventDefault();
-    setEmail('yaledevuni');
+    setEmail('yaledevuni@gmail.com');
     setPassword('123123123a');
     dispatch(login({ email: 'yaledevuni@gmail.com', password: '123123123a' }))
       .unwrap()
@@ -108,11 +115,11 @@ const Login = () => {
             <button
               type="submit"
               className={`text-sm border rounded-md p-2 shadow-[0_0_10px_rgba(0,0,0,0.1)] w-28 ${
-                status === 'loading'
+                status === 'loading' || isVerifying
                   ? 'text-gray-500 cursor-wait'
                   : 'hover:bg-gray-200'
               }`}
-              disabled={status === 'loading'}
+              disabled={status === 'loading' || isVerifying}
             >
               {status === 'loading' ? 'Logging in...' : 'Login'}
             </button>

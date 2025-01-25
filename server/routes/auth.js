@@ -163,7 +163,6 @@ router.post('/auth/forgot-password', demoUserMiddleware, async (req, res) => {
 router.post('/auth/reset-password', demoUserMiddleware, async (req, res) => {
   try {
     const { code, password, email } = req.body;
-    console.log('code', code, 'password', password, 'email', email);
     const user = await User.findOne({
       email,
       resetPasswordToken: code,
@@ -236,8 +235,6 @@ router.post(
 );
 
 router.post('/auth/login', (req, res, next) => {
-  const { email, password } = req.body;
-  console.log('email', email, 'password', password);
   passport.authenticate(
     'local',
     { session: false },

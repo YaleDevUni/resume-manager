@@ -110,7 +110,7 @@ app.use('/api/auth/register', authLimiter);
 app.use('/api', authRoutes);
 app.use('/api', demoUserMiddleware, recruitRoutes);
 app.use('/api', demoUserMiddleware, skillRoutes);
-app.use('/api', authMiddleware, demoUserMiddleware, resumeRoutes);
+app.use('/api', demoUserMiddleware, resumeRoutes);
 
 const PORT = process.env.PORT || (isDevelopment ? 3003 : 5000);
 

@@ -137,13 +137,22 @@ router.post('/auth/verify', async (req, res) => {
   }
 });
 
-router.post('/auth/forgot-password', demoUserMiddleware, async (req, res) => {
+router.post('/auth/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
+
     const user = await User.findOne({ email });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+    if (email === 'yaledevuni@gmail.com') {
+      return res
+        .status(403)
+        .json({ message: 'Demo user cannot reset password' });
+    }
+    if (user.isVerified === false) {
+      return res.status(400).json({ message: 'User not verified' });
     }
 
     const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -160,7 +169,7 @@ router.post('/auth/forgot-password', demoUserMiddleware, async (req, res) => {
   }
 });
 
-router.post('/auth/reset-password', demoUserMiddleware, async (req, res) => {
+router.post('/auth/reset-password', async (req, res) => {
   try {
     const { code, password, email } = req.body;
     const user = await User.findOne({
@@ -168,7 +177,12 @@ router.post('/auth/reset-password', demoUserMiddleware, async (req, res) => {
       resetPasswordToken: code,
       resetPasswordExpires: { $gt: Date.now() },
     });
-
+    //for demo user
+    if (email === 'yaledevuni@gmail.com') {
+      return res
+        .status(403)
+        .json({ message: 'Demo user cannot reset password' });
+    }
     if (!user) {
       return res.status(400).json({ message: 'Invalid or expired reset code' });
     }
@@ -191,48 +205,48 @@ router.post('/auth/reset-password', demoUserMiddleware, async (req, res) => {
   }
 });
 
-router.post(
-  '/auth/change-password',
-  demoUserMiddleware,
-  authMiddleware,
-  (req, res, next) => {
-    const { email, password, newPassword } = req.body;
+router.post('/auth/change-password', authMiddleware, (req, res, next) => {
+  const { email, password, newPassword } = req.body;
 
-    passport.authenticate(
-      'local',
-      { session: false },
-      async (err, user, info) => {
-        try {
-          if (err) {
-            console.error('Authentication error:', err);
-            return res.status(500).json({ message: 'Internal server error' });
-          }
-
-          if (!user) {
-            return res.status(401).json({
-              message: info.message || 'Current password is incorrect',
-            });
-          }
-
-          if (!isValidPassword(newPassword)) {
-            return res.status(400).json({
-              message:
-                'New password must be at least 8 characters long and contain at least one letter and one number',
-            });
-          }
-
-          await user.setPassword(newPassword);
-          await user.save();
-
-          res.json({ message: 'Password changed successfully' });
-        } catch (error) {
-          console.error('Unexpected error during password change:', error);
-          res.status(500).json({ message: 'Internal server error' });
+  passport.authenticate(
+    'local',
+    { session: false },
+    async (err, user, info) => {
+      try {
+        if (err) {
+          console.error('Authentication error:', err);
+          return res.status(500).json({ message: 'Internal server error' });
         }
+
+        if (!user) {
+          return res.status(401).json({
+            message: info.message || 'Current password is incorrect',
+          });
+        }
+        if (email === 'yaledevuni@gmail.com') {
+          return res.status(403).json({
+            message: 'Demo user cannot change password',
+          });
+        }
+
+        if (!isValidPassword(newPassword)) {
+          return res.status(400).json({
+            message:
+              'New password must be at least 8 characters long and contain at least one letter and one number',
+          });
+        }
+
+        await user.setPassword(newPassword);
+        await user.save();
+
+        res.json({ message: 'Password changed successfully' });
+      } catch (error) {
+        console.error('Unexpected error during password change:', error);
+        res.status(500).json({ message: 'Internal server error' });
       }
-    )(req, res, next);
-  }
-);
+    }
+  )(req, res, next);
+});
 
 router.post('/auth/login', (req, res, next) => {
   passport.authenticate(

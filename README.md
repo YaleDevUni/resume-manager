@@ -49,6 +49,25 @@ Resume Manager for HR is a comprehensive solution for organizing and evaluating 
 - MongoDB database
 - Secure file handling
 
+## Technology Stack
+
+### Frontend Architecture
+The frontend delivers a responsive and dynamic user interface, built with modern React practices and efficient state management:
+- React powers the interactive user interface with component-based architecture
+- Redux manages application state and data flow
+- Modern responsive design ensures compatibility across devices
+- Progressive web app capabilities for enhanced performance
+
+### Backend Infrastructure
+The backend leverages AWS cloud services for robust, scalable deployment:
+- Express.js server handles API requests and business logic
+- Passport authentication system ensures secure user management
+- MongoDB database provides flexible document storage
+- AWS EC2 hosts the backend services
+- AWS Application Load Balancer manages traffic distribution
+- AWS Route 53 handles domain management and HTTPS certification
+- Docker containerization for consistent deployment
+
 ## Feature Showcase
 
 ### Dashboard Overview

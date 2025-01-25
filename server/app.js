@@ -74,15 +74,15 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(express.raw({ limit: '100mb' }));
 
 /** rate limit middleware */
-app.use('/api', apiLimiter);
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/register', authLimiter);
+// app.use('/api', apiLimiter);
+// app.use('/api/auth/login', authLimiter);
+// app.use('/api/auth/register', authLimiter);
 
 // Routes
 app.use('/api', authRoutes);
-app.use('/api', demoUserMiddleware, recruitRoutes);
-app.use('/api', demoUserMiddleware, skillRoutes);
-app.use('/api', authMiddleware, demoUserMiddleware, resumeRoutes);
+app.use('/api', recruitRoutes);
+app.use('/api', skillRoutes);
+app.use('/api', authMiddleware, resumeRoutes);
 
 const PORT = process.env.PORT || (isDevelopment ? 3003 : 5000);
 

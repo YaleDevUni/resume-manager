@@ -58,20 +58,20 @@ router.post('/auth/register', async (req, res) => {
       email,
       verificationToken,
       verificationTokenExpires,
-      isVerified: false,
+      isVerified: true,
     });
 
     await User.register(user, password);
 
-    // Send verification email
-    const emailSent = await sendVerificationEmail(email, verificationToken);
+    // // Send verification email
+    // const emailSent = await sendVerificationEmail(email, verificationToken);
 
-    if (!emailSent) {
-      return res.status(500).json({
-        field: 'general',
-        message: 'Failed to send verification email',
-      });
-    }
+    // if (!emailSent) {
+    //   return res.status(500).json({
+    //     field: 'general',
+    //     message: 'Failed to send verification email',
+    //   });
+    // }
 
     res.status(201).json({
       message:
@@ -263,6 +263,5 @@ router.get('/auth/me', authMiddleware, async (req, res) => {
 router.post('/auth/validate-token', authMiddleware, (req, res) => {
   res.json({ valid: true, user: req.user });
 });
-
 
 module.exports = router;

@@ -98,13 +98,13 @@ const Login = () => {
             </button>
           </div>
           <div className="w-full flex flex-row justify-end gap-2 mb-6">
-            <button
+            {/* <button
               type="button"
               onClick={handleDemoLogin}
               className="text-sm border rounded-md p-2 shadow-[0_0_10px_rgba(0,0,0,0.1)] w-28 hover:bg-gray-200"
             >
               Demo Login
-            </button>
+            </button> */}
             <button
               type="submit"
               className={`text-sm border rounded-md p-2 shadow-[0_0_10px_rgba(0,0,0,0.1)] w-28 ${

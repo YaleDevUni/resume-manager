@@ -111,7 +111,12 @@ const Info = () => {
   return (
     <>
       <AlertContainer alerts={alerts} />
-      <div className="text-xs h-full w-1/3 shadow-[0px_0px_15px_-3px_rgba(0,0,0,0.3)] rounded-lg overflow-auto">
+      <div className="relative text-xs h-full w-1/3 shadow-[0px_0px_15px_-3px_rgba(0,0,0,0.3)] rounded-lg overflow-auto">
+        {resume.status === 'loading_from_table' && (
+          <div className="absolute inset-0 bg-white bg-opacity-70 backdrop-blur-sm z-10 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+          </div>
+        )}
         <div className="flex justify-center m-2 gap-3 sticky top-0 bg-white">
           <button
             className="w-full p-2 border rounded-md shadow-[0_0_6px_rgba(0,0,0,0.2)] hover:bg-gray-100"

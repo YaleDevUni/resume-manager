@@ -12,6 +12,7 @@ import {
   setResumeList,
   updateResumeById,
   removeResumeById,
+  setSelectedResume,
 } from '../../features/resume/resumeSlice';
 // Icons
 import { MdOutlineStarBorder } from 'react-icons/md';
@@ -21,6 +22,8 @@ import * as pdfjsLib from 'pdfjs-dist';
 
 const Table = () => {
   const pdfContainerRef = useRef(null);
+  // local state
+  const [selectedResumeId, setSelectedResumeId] = useState(null);
   // Custom hooks
   const { alerts, addAlert } = useAlerts(); // Custom hook to handle alerts
 
@@ -92,21 +95,25 @@ const Table = () => {
     }
   };
   const handleResumeClick = async selectedResume => {
+    setSelectedResumeId(selectedResume._id);
+    appendSearchParams('resumeId', selectedResume._id);
+
+    dispatch(
+      setResumeList(
+        resumeList.data?.map(r =>
+          r._id === selectedResume._id ? { ...r, resumeViewed: true } : r
+        )
+      )
+    );
+
     try {
       await dispatch(fetchResumeById(selectedResume._id)).unwrap();
-      dispatch(
-        setResumeList(
-          resumeList.data?.map(r =>
-            r._id === selectedResume._id ? { ...r, resumeViewed: true } : r
-          )
-        )
-      );
-      // set search params but preserve other params
+      // release local state
+      setSelectedResumeId(null);
     } catch (error) {
       addAlert(error, 'error');
     }
   };
-
   // Fetch resumes list on page load and when search params change
   useEffect(() => {
     fetchResumesList(getParamsObject());
@@ -167,9 +174,11 @@ const Table = () => {
                         className={` ${
                           index % 2 === 0 ? 'bg-gray-100' : 'bg-gray-200'
                         } cursor-pointer hover:bg-gray-300 ${
-                          resume.data?._id === resumeInTable._id &&
+                          (selectedResumeId === resumeInTable._id ||
+                            (resume.data?._id === resumeInTable._id &&
+                              !selectedResumeId)) &&
                           'bg-green-200 hover:bg-green-200'
-                        }`} // hover:bg-gray-300`}
+                        }`}
                         onClick={() => {
                           handleResumeClick(resumeInTable);
                         }}

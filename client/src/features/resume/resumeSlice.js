@@ -1,6 +1,11 @@
 // src/features/resume/resumeSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getAllResumes, getResumeById, updateResumeData, deleteResumeById } from './resumeApi';
+import {
+  getAllResumes,
+  getResumeById,
+  updateResumeData,
+  deleteResumeById,
+} from './resumeApi';
 
 // Async actions
 export const removeResumeById = createAsyncThunk(
@@ -92,17 +97,20 @@ const resumeSlice = createSlice({
     setResume: (state, action) => {
       state.resume.data = action.payload;
     },
+    setSelectedResume: (state, action) => {
+      state.resume = action.payload;
+    },
     setPdf: (state, action) => {
       state.pdf.data = action.payload;
     },
     clearPdf: state => {
       state.pdf.data = null;
-    }
+    },
   },
   extraReducers: builder => {
     // Fetch all resumes
     builder.addCase(fetchResumes.pending, state => {
-      state.resumes.status = 'loading';
+      state.resumes.status = 'loading_from_table';
     });
     builder.addCase(fetchResumes.fulfilled, (state, action) => {
       state.resumes.status = 'succeeded';
@@ -115,7 +123,7 @@ const resumeSlice = createSlice({
     });
     // Fetch resume by ID
     builder.addCase(fetchResumeById.pending, state => {
-      state.resume.status = 'loading';
+      state.resume.status = 'loading_from_table';
     });
     builder.addCase(fetchResumeById.fulfilled, (state, action) => {
       state.resume.status = 'succeeded';
@@ -155,6 +163,14 @@ const resumeSlice = createSlice({
   },
 });
 
-export const { resetListError, resetResumeError, setResumeList, setPdf, clearPdf } =
-  resumeSlice.actions;
+export const {
+  resetListError,
+  resetResumeError,
+  setResumeList,
+  setResume,
+  setSelectedResume,
+  setPdf,
+  clearPdf,
+} = resumeSlice.actions;
+
 export default resumeSlice.reducer;

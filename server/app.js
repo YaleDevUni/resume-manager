@@ -89,6 +89,12 @@ app.use(express.json({ limit: '100mb' }));
 
 /** Middlewares */
 app.use(logger);
+// if dev mode add latency 150ms
+app.use((req, res, next) => {
+  process.env.NODE_ENV === 'development' && setTimeout(next, 450);
+  process.env.NODE_ENV !== 'development' && next();
+});
+
 // Increase the URL-encoded payload limit
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(express.raw({ limit: '100mb' }));

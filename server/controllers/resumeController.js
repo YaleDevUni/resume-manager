@@ -113,7 +113,7 @@ exports.getAllResumes = async (req, res) => {
   try {
     // Parse query parameters with default values
     const page = parseInt(req.query.currentPage, 10) || 1;
-    const limit = parseInt(req.query.pagination, 10) || 10;
+    const limit = parseInt(req.query.pagination, 10) || 30;
     const originalFileName = req.query.originalFileName
       ? Array.isArray(req.query.originalFileName)
         ? req.query.originalFileName
